@@ -1,0 +1,10 @@
+Feb 28 00:00:53 Evans-MBP login[25721]: USER_PROCESS: 25721 ttys007
+Feb 28 00:04:44 Evans-MBP syslogd[532]: ASL Sender Statistics
+Feb 28 00:15:05 Evans-MBP syslogd[532]: ASL Sender Statistics
+Feb 28 00:25:47 Evans-MBP syslogd[532]: ASL Sender Statistics
+Feb 28 00:30:02 Evans-MBP syslogd[532]: Configuration Notice:
+	ASL Module "com.apple.cdscheduler" claims selected messages.
+	Those messages may not appear in standard system log files or in the ASL database.
+Feb 28 00:30:02 Evans-MBP syslogd[532]: Configuration Notice:
+	ASL Module "com.apple.install" claims selected messages.
+	Those messages may not appear in standard system log files or in the ASL database.
