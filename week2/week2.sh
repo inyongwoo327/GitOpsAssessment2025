@@ -1,0 +1,1 @@
+grep “session opened for user” /var/log/auth.log | awk '{split $1, a, "T"}'
