@@ -1,5 +1,5 @@
 echo "First task"
-awk '{split ($1, a, "T"); print a[0]}' /var/log/auth.log | grep “session opened for user”
+awk '/session opened for user/ {split ($1, a, "T"); print a[1]}' /var/log/auth.log | sort | uniq -c
 echo "\n Second Task"
 wc -l /var/log/auth.log
 echo "\n Third task"
