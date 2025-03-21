@@ -1,0 +1,50 @@
+name: Terraform Apply
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  terraform:
+    name: "Terraform Apply"
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: "eu-west-1"
+      TF_VAR_environment: ${{ matrix.env }}
+    strategy:
+      matrix:
+        env: [dev, prod]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.11.1
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Terraform Init
+        run: |
+          cd terraform
+          terraform init -backend-config="key=env/${{ matrix.env }}/terraform.tfstate"
+      
+      - name: Terraform Format
+        run: terraform fmt -check
+      
+      - name: Select Workspace
+        run: |
+          terraform workspace select ${{ matrix.env }} || terraform workspace new ${{ matrix.env }}
+
+      - name: Terraform Plan
+        run: terraform plan
+
+      - name: Terraform Apply
+        run: terraform apply --auto-approve
