@@ -1,3 +1,6 @@
+# Result after teraform plan for vpc, public/private subnet
+
+```
 question1 git:(main) ✗ terraform plan
 
 Terraform used the selected providers to generate the following execution plan.
@@ -6,7 +9,7 @@ Resource actions are indicated with the following symbols:
 
 Terraform will perform the following actions:
 
-  # aws_internet_gateway.gw will be created
+  aws_internet_gateway.gw will be created
   + resource "aws_internet_gateway" "gw" {
       + arn      = (known after apply)
       + id       = (known after apply)
@@ -20,7 +23,7 @@ Terraform will perform the following actions:
       + vpc_id   = (known after apply)
     }
 
-  # aws_subnet.private_subnet will be created
+  aws_subnet.private_subnet will be created
   + resource "aws_subnet" "private_subnet" {
       + arn                                            = (known after apply)
       + assign_ipv6_address_on_creation                = false
@@ -45,7 +48,7 @@ Terraform will perform the following actions:
       + vpc_id                                         = (known after apply)
     }
 
-  # aws_subnet.public_subnet will be created
+  aws_subnet.public_subnet will be created
   + resource "aws_subnet" "public_subnet" {
       + arn                                            = (known after apply)
       + assign_ipv6_address_on_creation                = false
@@ -70,7 +73,7 @@ Terraform will perform the following actions:
       + vpc_id                                         = (known after apply)
     }
 
-  # aws_vpc.main will be created
+  aws_vpc.main will be created
   + resource "aws_vpc" "main" {
       + arn                                  = (known after apply)
       + cidr_block                           = "10.0.0.0/16"
@@ -104,3 +107,5 @@ Changes to Outputs:
   + vpc_id            = (known after apply)
 
 ─────────────────────────────────────────────────────
+
+```

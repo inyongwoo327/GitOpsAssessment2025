@@ -1,3 +1,6 @@
+# Result after teraform plan for vpc, public/private subnet
+
+```
 bootstrap git:(main) ✗ terraform apply --auto-approve
 aws_dynamodb_table.terraform_locks: Refreshing state... [id=dynamodb-test]
 
@@ -6,7 +9,7 @@ Terraform used the selected providers to generate the following execution plan. 
 
 Terraform will perform the following actions:
 
-  # aws_s3_bucket.terraform_state will be created
+  aws_s3_bucket.terraform_state will be created
   + resource "aws_s3_bucket" "terraform_state" {
       + acceleration_status         = (known after apply)
       + acl                         = (known after apply)
@@ -50,7 +53,7 @@ Terraform will perform the following actions:
       + website (known after apply)
     }
 
-  # aws_s3_bucket_server_side_encryption_configuration.encryption will be created
+  aws_s3_bucket_server_side_encryption_configuration.encryption will be created
   + resource "aws_s3_bucket_server_side_encryption_configuration" "encryption" {
       + bucket = (known after apply)
       + id     = (known after apply)
@@ -63,7 +66,7 @@ Terraform will perform the following actions:
         }
     }
 
-  # aws_s3_bucket_versioning.versioning will be created
+  aws_s3_bucket_versioning.versioning will be created
   + resource "aws_s3_bucket_versioning" "versioning" {
       + bucket = (known after apply)
       + id     = (known after apply)
@@ -104,3 +107,5 @@ should now work.
 If you ever set or change modules or backend configuration for Terraform,
 rerun this command to reinitialize your working directory. If you forget, other
 commands will detect it and remind you to do so if necessary.
+
+```

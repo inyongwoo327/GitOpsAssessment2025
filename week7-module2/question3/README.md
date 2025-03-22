@@ -1,5 +1,6 @@
-# Create s3 backend bucket first.
+# Create s3 backend (remote state) bucket first.
 
+```
 bootstrap git:(main) ✗ terraform apply               
 
 Terraform used the selected providers to generate the following
@@ -9,7 +10,7 @@ symbols:
 
 Terraform will perform the following actions:
 
-  # aws_dynamodb_table.terraform_locks will be created
+  aws_dynamodb_table.terraform_locks will be created
   + resource "aws_dynamodb_table" "terraform_locks" {
       + arn              = (known after apply)
       + billing_mode     = "PAY_PER_REQUEST"
@@ -40,7 +41,7 @@ Terraform will perform the following actions:
       + ttl (known after apply)
     }
 
-  # aws_s3_bucket.terraform_state will be created
+  aws_s3_bucket.terraform_state will be created
   + resource "aws_s3_bucket" "terraform_state" {
       + acceleration_status         = (known after apply)
       + acl                         = (known after apply)
@@ -84,7 +85,7 @@ Terraform will perform the following actions:
       + website (known after apply)
     }
 
-  # aws_s3_bucket_server_side_encryption_configuration.encryption will be created
+  aws_s3_bucket_server_side_encryption_configuration.encryption will be created
   + resource "aws_s3_bucket_server_side_encryption_configuration" "encryption" {
       + bucket = (known after apply)
       + id     = (known after apply)
@@ -97,7 +98,7 @@ Terraform will perform the following actions:
         }
     }
 
-  # aws_s3_bucket_versioning.versioning will be created
+  aws_s3_bucket_versioning.versioning will be created
   + resource "aws_s3_bucket_versioning" "versioning" {
       + bucket = (known after apply)
       + id     = (known after apply)
@@ -126,9 +127,11 @@ aws_s3_bucket_versioning.versioning: Creation complete after 1s [id=evanwoo327-t
 aws_dynamodb_table.terraform_locks: Creation complete after 7s [id=terraform-locks]
 
 Apply complete! Resources: 4 added, 0 changed, 0 destroyed.
+```
 
 # Then deploy application s3 bucket
 
+```
 root git:(main) ✗ terraform apply
 
 Terraform used the selected providers to generate the following execution plan. Resource actions are
@@ -228,3 +231,5 @@ Apply complete! Resources: 4 added, 0 changed, 0 destroyed.
 Outputs:
 
 s3_bucket_arn = "arn:aws:s3:::evanwoo327-temp"
+
+```
