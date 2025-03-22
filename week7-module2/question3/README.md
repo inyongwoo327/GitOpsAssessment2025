@@ -129,7 +129,7 @@ aws_dynamodb_table.terraform_locks: Creation complete after 7s [id=terraform-loc
 Apply complete! Resources: 4 added, 0 changed, 0 destroyed.
 ```
 
-# Then deploy application s3 bucket
+# Then create application s3 bucket
 
 ```
 root git:(main) ✗ terraform apply
