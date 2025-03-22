@@ -1,5 +1,6 @@
 # Result of terraform plan for IAM role, policy, and attachment
 
+```
 question3 git:(main) ✗ terraform plan
 data.aws_iam_policy_document.ec2_policy: Reading...
 data.aws_iam_policy_document.s3_policy: Reading...
@@ -119,3 +120,5 @@ Plan: 5 to add, 0 to change, 0 to destroy.
 
 Note: You didn't use the -out option to save this plan, so Terraform can't guarantee to take exactly
 these actions if you run "terraform apply" now.
+
+```

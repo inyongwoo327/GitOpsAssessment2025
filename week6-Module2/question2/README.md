@@ -1,5 +1,6 @@
 # Result of terraform plan for s3 bucket creation
 
+```
 question2 git:(main) ✗ terraform plan
 
 Terraform used the selected providers to generate the following execution plan. Resource actions are
@@ -74,3 +75,5 @@ Changes to Outputs:
 
 Note: You didn't use the -out option to save this plan, so Terraform can't guarantee to take exactly
 these actions if you run "terraform apply" now.
+
+```

@@ -1,5 +1,6 @@
 # Result from terraform apply (create ec2) 
  
+ ```
  question1 git:(main) ✗ terraform apply --var-file=terraform.tfvars
 data.aws_ami.ubuntu: Reading...
 aws_vpc.test-env: Refreshing state... [id=vpc-07f1de66d9315b59e]
@@ -109,3 +110,5 @@ Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
 Outputs:
 
 ec2_public_ip = "18.201.30.214"
+
+```
