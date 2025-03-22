@@ -13,16 +13,15 @@ resource "aws_iam_role" "example" {
   assume_role_policy  = data.aws_iam_policy_document.instance_assume_role_policy.json
 }
 
-# EC2 Policy Document
 data "aws_iam_policy_document" "ec2_policy" {
   statement {
-    actions   = ["ec2:Describe*"]
+    actions   = ["ec2:Describe", "ec2:DescribeAccountAttributes", "ec2:StartInstances", "ec2:DeleteSecurityGroup", "ec2:DeleteVpc", "ec2:DeleteSubnet", "ec2:DeleteVpc", "ec2:RunInstances",
+    "ec2:CreateVpc", "ec2:CreateSubnet", "ec2:CreateSecurityGroup"]
     effect    = "Allow"
     resources = ["*"]
   }
 }
 
-# S3 Policy Document
 data "aws_iam_policy_document" "s3_policy" {
   statement {
     actions   = ["s3:ListAllMyBuckets", "s3:ListBucket", "s3:HeadBucket"]
@@ -31,7 +30,6 @@ data "aws_iam_policy_document" "s3_policy" {
   }
 }
 
-# Alternative: Separate Policies
 resource "aws_iam_policy" "ec2_policy" {
   name        = "ec2_policies"
   description = "Policy for EC2 describe actions"

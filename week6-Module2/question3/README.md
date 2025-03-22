@@ -1,16 +1,15 @@
 # Result of terraform plan for IAM role, policy, and attachment
 
 ```
-question3 git:(main) ✗ terraform plan
+question3 git:(main) ✗ terraform apply --auto-approve
 data.aws_iam_policy_document.ec2_policy: Reading...
-data.aws_iam_policy_document.s3_policy: Reading...
 data.aws_iam_policy_document.instance_assume_role_policy: Reading...
-data.aws_iam_policy_document.instance_assume_role_policy: Read complete after 0s [id=2851119427]
-data.aws_iam_policy_document.ec2_policy: Read complete after 0s [id=2218315402]
+data.aws_iam_policy_document.s3_policy: Reading...
 data.aws_iam_policy_document.s3_policy: Read complete after 0s [id=3732469000]
+data.aws_iam_policy_document.instance_assume_role_policy: Read complete after 0s [id=2851119427]
+data.aws_iam_policy_document.ec2_policy: Read complete after 0s [id=2016236616]
 
-Terraform used the selected providers to generate the following execution plan. Resource actions are
-indicated with the following symbols:
+Terraform used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:
   + create
 
 Terraform will perform the following actions:
@@ -28,7 +27,18 @@ Terraform will perform the following actions:
             {
               + Statement = [
                   + {
-                      + Action   = "ec2:Describe*"
+                      + Action   = [
+                          + "ec2:StartInstances",
+                          + "ec2:RunInstances",
+                          + "ec2:DescribeAccountAttributes",
+                          + "ec2:Describe",
+                          + "ec2:DeleteVpc",
+                          + "ec2:DeleteSubnet",
+                          + "ec2:DeleteSecurityGroup",
+                          + "ec2:CreateVpc",
+                          + "ec2:CreateSubnet",
+                          + "ec2:CreateSecurityGroup",
+                        ]
                       + Effect   = "Allow"
                       + Resource = "*"
                     },
@@ -115,10 +125,15 @@ Terraform will perform the following actions:
     }
 
 Plan: 5 to add, 0 to change, 0 to destroy.
-
-────────────────────────────────────────────────────────────────────────────────────────────────────────
-
-Note: You didn't use the -out option to save this plan, so Terraform can't guarantee to take exactly
-these actions if you run "terraform apply" now.
+aws_iam_policy.ec2_policy: Creating...
+aws_iam_policy.s3_policy: Creating...
+aws_iam_role.example: Creating...
+aws_iam_policy.s3_policy: Creation complete after 1s [id=arn:aws:iam::590184075527:policy/s3_policies]
+aws_iam_policy.ec2_policy: Creation complete after 1s [id=arn:aws:iam::590184075527:policy/ec2_policies]
+aws_iam_role.example: Creation complete after 1s [id=terraform_role]
+aws_iam_role_policy_attachment.s3_attachment: Creating...
+aws_iam_role_policy_attachment.ec2_attachment: Creating...
+aws_iam_role_policy_attachment.s3_attachment: Creation complete after 0s [id=terraform_role-20250322181834069400000001]
+aws_iam_role_policy_attachment.ec2_attachment: Creation complete after 0s [id=terraform_role-20250322181834103400000002]
 
 ```
