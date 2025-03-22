@@ -1,3 +1,5 @@
+# Result of terraform plan for IAM role, policy, and attachment
+
 question3 git:(main) ✗ terraform plan
 data.aws_iam_policy_document.ec2_policy: Reading...
 data.aws_iam_policy_document.s3_policy: Reading...
@@ -12,7 +14,7 @@ indicated with the following symbols:
 
 Terraform will perform the following actions:
 
-  # aws_iam_policy.ec2_policy will be created
+  aws_iam_policy.ec2_policy will be created
   + resource "aws_iam_policy" "ec2_policy" {
       + arn              = (known after apply)
       + attachment_count = (known after apply)
@@ -37,7 +39,7 @@ Terraform will perform the following actions:
       + tags_all         = (known after apply)
     }
 
-  # aws_iam_policy.s3_policy will be created
+  aws_iam_policy.s3_policy will be created
   + resource "aws_iam_policy" "s3_policy" {
       + arn              = (known after apply)
       + attachment_count = (known after apply)
@@ -66,7 +68,7 @@ Terraform will perform the following actions:
       + tags_all         = (known after apply)
     }
 
-  # aws_iam_role.example will be created
+  aws_iam_role.example will be created
   + resource "aws_iam_role" "example" {
       + arn                   = (known after apply)
       + assume_role_policy    = jsonencode(
@@ -97,14 +99,14 @@ Terraform will perform the following actions:
       + inline_policy (known after apply)
     }
 
-  # aws_iam_role_policy_attachment.ec2_attachment will be created
+  aws_iam_role_policy_attachment.ec2_attachment will be created
   + resource "aws_iam_role_policy_attachment" "ec2_attachment" {
       + id         = (known after apply)
       + policy_arn = (known after apply)
       + role       = "terraform_role"
     }
 
-  # aws_iam_role_policy_attachment.s3_attachment will be created
+  aws_iam_role_policy_attachment.s3_attachment will be created
   + resource "aws_iam_role_policy_attachment" "s3_attachment" {
       + id         = (known after apply)
       + policy_arn = (known after apply)

@@ -1,3 +1,5 @@
+# Result of terraform plan for s3 bucket creation
+
 question2 git:(main) ✗ terraform plan
 
 Terraform used the selected providers to generate the following execution plan. Resource actions are
@@ -6,7 +8,7 @@ indicated with the following symbols:
 
 Terraform will perform the following actions:
 
-  # aws_s3_bucket.test_bucket will be created
+  aws_s3_bucket.test_bucket will be created
   + resource "aws_s3_bucket" "test_bucket" {
       + acceleration_status         = (known after apply)
       + acl                         = (known after apply)
@@ -52,7 +54,7 @@ Terraform will perform the following actions:
       + website (known after apply)
     }
 
-  # aws_s3_bucket_versioning.versioning will be created
+  aws_s3_bucket_versioning.versioning will be created
   + resource "aws_s3_bucket_versioning" "versioning" {
       + bucket = (known after apply)
       + id     = (known after apply)

@@ -1,3 +1,5 @@
+# Result from terraform apply (create ec2) 
+ 
  question1 git:(main) ✗ terraform apply --var-file=terraform.tfvars
 data.aws_ami.ubuntu: Reading...
 aws_vpc.test-env: Refreshing state... [id=vpc-07f1de66d9315b59e]
@@ -11,7 +13,7 @@ indicated with the following symbols:
 
 Terraform will perform the following actions:
 
-  # aws_instance.sample will be created
+  aws_instance.sample will be created
   + resource "aws_instance" "sample" {
       + ami                                  = "ami-0f0c3baa60262d5b9"
       + arn                                  = (known after apply)
