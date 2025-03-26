@@ -1,5 +1,17 @@
-# Create s3 backend (remote state) bucket first.
+# Exercise:
+create a s3 module in terraform
 
+## Folder Structure
+
+```
+
+```
+
+# STEP 1: Create s3 backend (remote state) bucket first.
+
+<details>
+  <summary>Show the `terraform plan`</summary>
+  
 ```
 bootstrap git:(main) ✗ terraform apply               
 
@@ -128,9 +140,13 @@ aws_dynamodb_table.terraform_locks: Creation complete after 7s [id=terraform-loc
 
 Apply complete! Resources: 4 added, 0 changed, 0 destroyed.
 ```
+</details>
 
-# Then create application s3 bucket
+# STEP 2: Then create application s3 bucket
 
+<details>
+  <summary>Show the `terraform plan`</summary>
+  
 ```
 root git:(main) ✗ terraform apply
 
@@ -233,3 +249,4 @@ Outputs:
 s3_bucket_arn = "arn:aws:s3:::evanwoo327-temp"
 
 ```
+</details>
