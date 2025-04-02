@@ -1,5 +1,5 @@
 # Exercise:
-create a s3 module in terraform
+Create a Terraform module that allows you to create an EC2 instance, with security groups and autoscaling. The configuration of VPC, Subnets, AMI, and a few other common settings is managed by parameters. Generate docs using https://github.com/terraform-docs/terraform-docs. 
 
 # STEP 1: Create s3 backend (remote state) bucket first.
 
