@@ -604,11 +604,7 @@ No resources.
 
 # Inputs
 
-| Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
-| <a name="input_private_subnet_cidr"></a> [private\_subnet\_cidr](#input\_private\_subnet\_cidr) | Private Subnet CIDR | `string` | `"10.0.2.0/24"` | no |
-| <a name="input_public_subnet_cidr"></a> [public\_subnet\_cidr](#input\_public\_subnet\_cidr) | Public Subnet CIDR | `string` | `"10.0.1.0/24"` | no |
-| <a name="input_region"></a> [region](#input\_region) | n/a | `string` | `"eu-west-1"` | no |
+No inputs.
 
 # Outputs
 
