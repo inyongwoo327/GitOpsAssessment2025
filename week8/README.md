@@ -4,15 +4,9 @@ create a s3 module in terraform
 # STEP 1: Create s3 backend (remote state) bucket first.
 
 <details>
-  <summary>Show the `terraform apply --auto-approve`</summary>
+  <summary>Show s3 backend after `terraform apply --auto-approve`</summary>
 
 ```
-bootstrap git:(main) ✗ terraform plan                
-aws_dynamodb_table.terraform_locks: Refreshing state... [id=module_practice_db]
-aws_s3_bucket.terraform_state: Refreshing state... [id=module-practice-bucket]
-aws_s3_bucket_versioning.versioning: Refreshing state... [id=module-practice-bucket]
-aws_s3_bucket_server_side_encryption_configuration.encryption: Refreshing state... [id=module-practice-bucket]
-
 bootstrap git:(main) ✗ terraform state list
 aws_dynamodb_table.terraform_locks
 aws_s3_bucket.terraform_state
