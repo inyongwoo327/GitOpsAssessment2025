@@ -1,3 +1,4 @@
+<!-- BEGIN_TF_DOCS -->
 # Exercise:
 Create a Terraform module that allows you to create an EC2 instance, with security groups and autoscaling. The configuration of VPC, Subnets, AMI, and a few other common settings is managed by parameters. Generate docs using https://github.com/terraform-docs/terraform-docs. 
 
@@ -589,3 +590,27 @@ module.alb.aws_lb_listener.http: Creation complete after 1s [id=arn:aws:elasticl
 Apply complete! Resources: 14 added, 0 changed, 0 destroyed.
 ```
 </details>
+
+# Modules
+
+| Name | Source | Version |
+|------|--------|---------|
+| <a name="module_alb"></a> [alb](#module\_alb) | ./module-alb | n/a |
+| <a name="module_ec2_instance"></a> [ec2\_instance](#module\_ec2\_instance) | ./module-ec2 | n/a |
+
+# Resources
+
+No resources.
+
+# Inputs
+
+| Name | Description | Type | Default | Required |
+|------|-------------|------|---------|:--------:|
+| <a name="input_private_subnet_cidr"></a> [private\_subnet\_cidr](#input\_private\_subnet\_cidr) | Private Subnet CIDR | `string` | `"10.0.2.0/24"` | no |
+| <a name="input_public_subnet_cidr"></a> [public\_subnet\_cidr](#input\_public\_subnet\_cidr) | Public Subnet CIDR | `string` | `"10.0.1.0/24"` | no |
+| <a name="input_region"></a> [region](#input\_region) | n/a | `string` | `"eu-west-1"` | no |
+
+# Outputs
+
+No outputs.
+<!-- END_TF_DOCS -->
