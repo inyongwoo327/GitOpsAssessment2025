@@ -4,7 +4,7 @@
 Create a fully functional Docker Swarm cluster on AWS using Terraform, and deploy a WordPress website with a MySQL backend on top of the cluster.
 This challenge will assess your ability to provision infrastructure as code, configure a container orchestration platform (Docker Swarm), and deploy containerized applications in a secure and reproducible way.
 
-# STEP 1: Create s3 backend (remote state) bucket first.
+## STEP 1: Create s3 backend (remote state) bucket first.
 
 <details>
   <summary>Create and show s3 backend for remote state</summary>
@@ -522,17 +522,98 @@ worker_public_ips = [
 ```
 </details>
 
-## Providers
+## STEP 3: Access to Controller (Manager) node (ec2) then add other worker nodes to the swarm.
+- The controller (manager) node already initiated docker swarm during the provision through terraform (user_data). 
+
+<details>
+  <summary>Add other worker nodes to the swarm through 'docker swarm join-token'</summary>
+
+```
+ubuntu@ip-10-0-1-59:~$ sudo docker swarm join-token worker
+To add a worker to this swarm, run the following command:
+
+    docker swarm join --token zxxxxxxx 10.0.1.59:2377
+```
+</details>
+
+## STEP 4: Access to other worker nodes then the nodes have to join to the swarm.
+- Use the command 'docker swarm join --token' to make each worker node join the swarm
+
+<details>
+  <summary>Use the command 'docker swarm join --token' to make each worker node join the swarm</summary>
+
+```
+ubuntu@ip-10-0-1-112:~$ docker --version
+Docker version 28.0.4, build b8034c0
+ubuntu@ip-10-0-1-112:~$ sudo docker swarm join --token zxxxxxxxxxx 10.0.1.59:2377
+This node joined a swarm as a worker.
+
+ubuntu@ip-10-0-1-21:~$ docker --version
+Docker version 28.0.4, build b8034c0
+ubuntu@ip-10-0-1-21:~$ sudo docker swarm join --token zxxxxxxxxx 10.0.1.59:2377
+This node joined a swarm as a worker.
+```
+</details>
+
+## STEP 5: Create docker for both frontend and backend in the controller (manager) node (ec2).
+- Create docker networks for frontend and backend
+
+<details>
+  <summary>Use the command 'docker network create' with overlay driver to create frontend and backend networks</summary>
+
+```
+ubuntu@ip-10-0-1-59:~$ sudo docker network create -d overlay frontend-ntwk
+
+ubuntu@ip-10-0-1-59:~$ sudo docker network create -d overlay backend-ntwk
+```
+</details>
+
+## STEP 6: Copy the docker compose file from local machine then create docker stack from the file.
+- Use docker compose file to create the docker stack called wordpress. 
+- The stack will create the two services, wordpress_mysql and wordpress_wordpress.
+- Verify services in every node (controller and worker nodes)
+
+<details>
+  <summary>Use scp command to copy the docker compose file from local machine then create docker stack with the file.</summary>
+
+```
+ubuntu@ip-10-0-1-59:~$ sudo docker stack deploy -c docker-compose.yml wordpress
+Since --detach=false was not specified, tasks will be created in the background.
+In a future release, --detach=false will become the default.
+Creating service wordpress_mysql
+Creating service wordpress_wordpress
+ubuntu@ip-10-0-1-59:~$ sudo docker node ls
+ID                            HOSTNAME        STATUS    AVAILABILITY   MANAGER STATUS   ENGINE VERSION
+xxxxxxxxxxxxxx    ip-10-0-1-21    Ready     Active                          28.0.4
+kkkkkkkkkkkkkk *   ip-10-0-1-59    Ready     Active         Leader           28.0.4
+aaaaaaaaaaaaaa     ip-10-0-1-112   Ready     Active                          28.0.4
+ubuntu@ip-10-0-1-59:~$ sudo docker node ps
+ID             NAME                    IMAGE             NODE           DESIRED STATE   CURRENT STATE            ERROR     PORTS
+0xw7zz0tgtsl   wordpress_wordpress.1   wordpress:6.7.2   ip-10-0-1-59   Running         Running 10 seconds ago
+ubuntu@ip-10-0-1-59:~$ sudo docker node ps ip-10-0-1-21
+ID             NAME                    IMAGE             NODE           DESIRED STATE   CURRENT STATE            ERROR     PORTS
+ke057x88myqr   wordpress_mysql.1       mysql:8.0.41      ip-10-0-1-21   Running         Running 27 seconds ago
+17g2kj00ydga   wordpress_wordpress.2   wordpress:6.7.2   ip-10-0-1-21   Running         Running 43 seconds ago
+ubuntu@ip-10-0-1-59:~$ sudo docker node ps ip-10-0-1-112
+ID             NAME                    IMAGE             NODE            DESIRED STATE   CURRENT STATE               ERROR     PORTS
+f6wpitai3fzd   wordpress_wordpress.3   wordpress:6.7.2   ip-10-0-1-112   Running         Running about an hour ago
+ubuntu@ip-10-0-1-59:~$ sudo docker node ps ip-10-0-1-59
+ID             NAME                    IMAGE             NODE           DESIRED STATE   CURRENT STATE               ERROR     PORTS
+0xw7zz0tgtsl   wordpress_wordpress.1   wordpress:6.7.2   ip-10-0-1-59   Running         Running about an hour ago
+```
+</details>
+
+# Providers
 
 | Name | Version |
 |------|---------|
 | <a name="provider_aws"></a> [aws](#provider\_aws) | 5.94.1 |
 
-## Modules
+# Modules
 
 No modules.
 
-## Resources
+# Resources
 
 | Name | Type |
 |------|------|
@@ -546,7 +627,7 @@ No modules.
 | [aws_vpc.main](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc) | resource |
 | [aws_ami.ubuntu](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/ami) | data source |
 
-## Inputs
+# Inputs
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
@@ -558,12 +639,11 @@ No modules.
 | <a name="input_public_subnet_cidr"></a> [public\_subnet\_cidr](#input\_public\_subnet\_cidr) | Public Subnet CIDR | `string` | `"10.0.1.0/24"` | no |
 | <a name="input_vpc_cidr"></a> [vpc\_cidr](#input\_vpc\_cidr) | VPC CIDR | `string` | `"10.0.0.0/16"` | no |
 
-## Outputs
+# Outputs
 
 | Name | Description |
 |------|-------------|
 | <a name="output_manager_public_ip"></a> [manager\_public\_ip](#output\_manager\_public\_ip) | n/a |
 | <a name="output_worker_public_ips"></a> [worker\_public\_ips](#output\_worker\_public\_ips) | n/a |
-
 
 <!-- END_TF_DOCS -->
