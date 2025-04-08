@@ -1,0 +1,101 @@
+# version: "3.8"
+
+# services:
+#   db:
+#     image: mysql:8.0
+#     networks:
+#       - wordpress-network
+#     environment:
+#       MYSQL_ROOT_PASSWORD: test
+#       MYSQL_DATABASE: wordpress
+#       MYSQL_USER: wordpress
+#       MYSQL_PASSWORD: test
+#     volumes:
+#       - db-data:/var/lib/mysql
+#     deploy:
+#       placement:
+#         constraints:
+#           - node.role == manager
+#       resources:
+#         limits:
+#           cpus: "0.5"
+#           memory: 512M
+#   wordpress:
+#     image: wordpress:6.7.2
+#     networks:
+#       - wordpress-network
+#     ports:
+#       - "8080:80"
+#     environment:
+#       WORDPRESS_DB_HOST: db
+#       WORDPRESS_DB_NAME: wordpress
+#       WORDPRESS_DB_USER: wordpress
+#       WORDPRESS_DB_PASSWORD: test
+#     depends_on:
+#       - db
+#     deploy:
+#       replicas: 2
+#       placement:
+#         constraints:
+#           - node.role == worker
+#       resources:
+#         limits:
+#           cpus: "0.5"
+#           memory: 256M
+#       restart_policy:
+#         condition: on-failure
+
+# networks:
+#   wordpress-network:
+#     driver: overlay
+
+# volumes:
+#   db-data:
+
+version: '3.8'
+
+
+services:
+  mysql:
+    image: mysql:8.0.41
+    networks:
+      - backend-ntwk
+    volumes:
+      - sql-data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: test
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: test
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  wordpress:
+    image: wordpress:6.7.2
+    ports:
+      - "8080:80"
+    networks:
+      - frontend-ntwk
+      - backend-ntwk
+    environment:
+      WORDPRESS_DB_HOST: mysql
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: test
+      WORDPRESS_DB_NAME: wordpress
+    deploy:
+      replicas: 3
+      restart_policy:
+        condition: on-failure
+    depends_on:
+      - mysql
+
+volumes:
+  sql-data:
+
+networks:
+  backend-ntwk:
+    external: true
+  frontend-ntwk:
+    external: true
