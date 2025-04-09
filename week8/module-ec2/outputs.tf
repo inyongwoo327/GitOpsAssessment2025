@@ -13,12 +13,7 @@ output "launch_template_id" {
   value       = aws_launch_template.sample_launch_template.id
 }
 
-output "vpc_id" {
-  description = "ID of the VPC created by this module"
-  value       = aws_vpc.main.id
-}
-
-output "public_subnet_ids" {
-  description = "List of public subnet IDs"
-  value       = [aws_subnet.public_subnet.id, aws_subnet.public_subnet_2.id]
+output "instance_id" {
+  description = "ID of the EC2 instance"
+  value       = aws_instance.sample.id
 }
