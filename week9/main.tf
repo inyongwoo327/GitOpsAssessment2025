@@ -128,10 +128,6 @@ resource "aws_security_group" "security_group_ec2" {
   }
 }
 
-resource "template_file" "web-userdata" {
-    filename = ""
-}
-
 resource "aws_instance" "controller" {
   ami           = data.aws_ami.ubuntu.id
   instance_type = var.instance_type
