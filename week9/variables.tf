@@ -19,7 +19,6 @@ variable "vpc_cidr" {
 variable "local_ip" {
   description = "Local CIDR"
   type        = string
-  default     = "88.217.180.87/32"
 }
 
 variable "public_subnet_cidr" {
