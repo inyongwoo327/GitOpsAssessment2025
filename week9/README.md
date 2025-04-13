@@ -22,7 +22,7 @@ Your infrastructure matches the configuration.
 ```
 </details>
 
-# STEP 2: Create vpc, subnet, security group, ec2 with user data, route table, etc.
+## STEP 2: Create vpc, subnet, security group, ec2 with user data, route table, etc.
 - After creating s3 for remote state, create vpc, subnet, security group, ec2 with user data, route table, etc.
 
 <details>
