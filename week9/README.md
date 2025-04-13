@@ -1,8 +1,10 @@
 <!-- BEGIN_TF_DOCS -->
-
 # Objective:
 Create a fully functional Docker Swarm cluster on AWS using Terraform, and deploy a WordPress website with a MySQL backend on top of the cluster.
 This challenge will assess your ability to provision infrastructure as code, configure a container orchestration platform (Docker Swarm), and deploy containerized applications in a secure and reproducible way.
+
+## Documentation creation command
+terraform-docs markdown table --output-file README.md --output-mode inject .  
 
 ## STEP 1: Create s3 backend (remote state) bucket first.
 
@@ -27,13 +29,11 @@ Your infrastructure matches the configuration.
   <summary>Show the `terraform apply --auto-approve`</summary>
 
 ```
-week9 git:(main) ✗ terraform apply --auto-approve           
-Acquiring state lock. This may take a few moments...
+week9 git:(main) ✗ terraform apply --auto-approve
 data.aws_ami.ubuntu: Reading...
-data.aws_ami.ubuntu: Read complete after 2s [id=ami-05718e63cb39fcdb1]
+data.aws_ami.ubuntu: Read complete after 0s [id=ami-05718e63cb39fcdb1]
 
-Terraform used the selected providers to generate the following execution
-plan. Resource actions are indicated with the following symbols:
+Terraform used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:
   + create
 
 Terraform will perform the following actions:
@@ -84,7 +84,7 @@ Terraform will perform the following actions:
           + "Name" = "Controller Node Instance"
         }
       + tenancy                              = (known after apply)
-      + user_data                            = "d4b5059c8dc7ae3ed01423cf3f60e4720a67997c"
+      + user_data                            = "2663ed642b630f3460891f6610534009174b2e86"
       + user_data_base64                     = (known after apply)
       + user_data_replace_on_change          = false
       + vpc_security_group_ids               = (known after apply)
@@ -158,7 +158,7 @@ Terraform will perform the following actions:
           + "Name" = "Worker Node Instance"
         }
       + tenancy                              = (known after apply)
-      + user_data                            = "18f1b49331e8ac6b9ed2ec0c8923c289df2f47e4"
+      + user_data                            = "e419caabfb30f06f6fe6a075e1a16490f1f92a25"
       + user_data_base64                     = (known after apply)
       + user_data_replace_on_change          = false
       + vpc_security_group_ids               = (known after apply)
@@ -232,7 +232,7 @@ Terraform will perform the following actions:
           + "Name" = "Worker Node Instance"
         }
       + tenancy                              = (known after apply)
-      + user_data                            = "18f1b49331e8ac6b9ed2ec0c8923c289df2f47e4"
+      + user_data                            = "e419caabfb30f06f6fe6a075e1a16490f1f92a25"
       + user_data_base64                     = (known after apply)
       + user_data_replace_on_change          = false
       + vpc_security_group_ids               = (known after apply)
@@ -406,6 +406,19 @@ Terraform will perform the following actions:
               + cidr_blocks      = [
                   + "88.217.180.87/32",
                 ]
+              + from_port        = 8080
+              + ipv6_cidr_blocks = []
+              + prefix_list_ids  = []
+              + protocol         = "tcp"
+              + security_groups  = []
+              + self             = false
+              + to_port          = 8080
+                # (1 unchanged attribute hidden)
+            },
+          + {
+              + cidr_blocks      = [
+                  + "88.217.180.87/32",
+                ]
               + from_port        = 80
               + ipv6_cidr_blocks = []
               + prefix_list_ids  = []
@@ -486,37 +499,37 @@ Changes to Outputs:
         ],
     ]
 aws_vpc.main: Creating...
-aws_vpc.main: Creation complete after 1s [id=vpc-027e27f4d0de1ce79]
+aws_vpc.main: Creation complete after 2s [id=vpc-0d74d88d5e297a6ef]
 aws_internet_gateway.gw: Creating...
 aws_subnet.public_subnet: Creating...
-aws_internet_gateway.gw: Creation complete after 1s [id=igw-078f17f3c0b84b96a]
+aws_internet_gateway.gw: Creation complete after 0s [id=igw-0f1fdb3c5c8f7c57e]
 aws_route_table.rt_table: Creating...
-aws_route_table.rt_table: Creation complete after 1s [id=rtb-09d906383fbdaec86]
+aws_route_table.rt_table: Creation complete after 1s [id=rtb-0f3d0a1bacef3d3f4]
 aws_subnet.public_subnet: Still creating... [10s elapsed]
-aws_subnet.public_subnet: Creation complete after 11s [id=subnet-0c52a9ae841761492]
+aws_subnet.public_subnet: Creation complete after 11s [id=subnet-0e0dfc37d741ec9f1]
 aws_route_table_association.rt_table_association: Creating...
 aws_security_group.security_group_ec2: Creating...
-aws_route_table_association.rt_table_association: Creation complete after 1s [id=rtbassoc-0b8336ab6eb45b87f]
-aws_security_group.security_group_ec2: Creation complete after 3s [id=sg-0292576b98e2bfbf8]
+aws_route_table_association.rt_table_association: Creation complete after 0s [id=rtbassoc-015647e75db6521cb]
+aws_security_group.security_group_ec2: Creation complete after 2s [id=sg-090bed0a6eecb0260]
 aws_instance.worker[0]: Creating...
 aws_instance.controller: Creating...
 aws_instance.worker[1]: Creating...
-aws_instance.controller: Still creating... [10s elapsed]
-aws_instance.worker[1]: Still creating... [10s elapsed]
 aws_instance.worker[0]: Still creating... [10s elapsed]
-aws_instance.worker[0]: Creation complete after 13s [id=i-0201baba09b5f7c2d]
-aws_instance.worker[1]: Creation complete after 13s [id=i-062a86a700d03e023]
-aws_instance.controller: Creation complete after 13s [id=i-033ae43f4b4eb447d]
+aws_instance.worker[1]: Still creating... [10s elapsed]
+aws_instance.controller: Still creating... [10s elapsed]
+aws_instance.worker[1]: Creation complete after 13s [id=i-0aee3ffe692f69b92]
+aws_instance.worker[0]: Creation complete after 13s [id=i-0645ac5c2c09a625a]
+aws_instance.controller: Creation complete after 13s [id=i-0db573ee165c9c108]
 
 Apply complete! Resources: 9 added, 0 changed, 0 destroyed.
 
 Outputs:
 
-manager_public_ip = "34.245.36.46"
+manager_public_ip = "34.245.53.15"
 worker_public_ips = [
   [
-    "34.247.176.136",
-    "3.252.35.48",
+    "18.202.26.110",
+    "54.170.67.87",
   ],
 ]
 ```
@@ -603,17 +616,17 @@ ID             NAME                    IMAGE             NODE           DESIRED 
 ```
 </details>
 
-# Providers
+## Providers
 
 | Name | Version |
 |------|---------|
 | <a name="provider_aws"></a> [aws](#provider\_aws) | 5.94.1 |
 
-# Modules
+## Modules
 
 No modules.
 
-# Resources
+## Resources
 
 | Name | Type |
 |------|------|
@@ -627,7 +640,7 @@ No modules.
 | [aws_vpc.main](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc) | resource |
 | [aws_ami.ubuntu](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/ami) | data source |
 
-# Inputs
+## Inputs
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
@@ -635,11 +648,11 @@ No modules.
 | <a name="input_aws_region"></a> [aws\_region](#input\_aws\_region) | n/a | `string` | `"eu-west-1"` | no |
 | <a name="input_instance_type"></a> [instance\_type](#input\_instance\_type) | n/a | `string` | `"t2.micro"` | no |
 | <a name="input_key_name"></a> [key\_name](#input\_key\_name) | n/a | `string` | `"test"` | no |
-| <a name="input_local_ip"></a> [local\_ip](#input\_local\_ip) | Local CIDR | `string` | `"88.217.180.87/32"` | no |
+| <a name="input_local_ip"></a> [local\_ip](#input\_local\_ip) | Local CIDR | `string` | n/a | yes |
 | <a name="input_public_subnet_cidr"></a> [public\_subnet\_cidr](#input\_public\_subnet\_cidr) | Public Subnet CIDR | `string` | `"10.0.1.0/24"` | no |
 | <a name="input_vpc_cidr"></a> [vpc\_cidr](#input\_vpc\_cidr) | VPC CIDR | `string` | `"10.0.0.0/16"` | no |
 
-# Outputs
+## Outputs
 
 | Name | Description |
 |------|-------------|
