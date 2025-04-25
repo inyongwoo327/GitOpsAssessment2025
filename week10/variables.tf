@@ -2,12 +2,33 @@ variable "aws_region" {
   default = "eu-west-1"
 }
 
-variable "instance_type" {
-  default = "t2.micro"
+variable "master_instance_type" {
+  description = "EC2 instance type for K3s master node"
+  type        = string
+  default     = "t3.medium"
+}
+
+variable "worker_instance_type" {
+  description = "EC2 instance type for K3s worker nodes"
+  type        = string
+  default     = "t3.small"
+}
+
+variable "worker_count" {
+  description = "Number of K3s worker nodes"
+  type        = number
+  default     = 2
 }
 
 variable "key_name" {
+  type        = string
   default = "test"
+}
+
+variable "ssh_private_key_path" {
+  description = "Path to the private SSH key file on local machine"
+  type        = string
+  default     = "~/.ssh/test.pem"
 }
 
 variable "vpc_cidr" {

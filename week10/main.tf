@@ -130,9 +130,9 @@ resource "aws_security_group" "security_group_ec2" {
   }
 }
 
-resource "aws_instance" "controller" {
+resource "aws_instance" "master" {
   ami           = data.aws_ami.ubuntu.id
-  instance_type = var.instance_type
+  instance_type = var.master_instance_type
   subnet_id     = aws_subnet.public_subnet.id
   key_name = var.key_name
   vpc_security_group_ids = [aws_security_group.security_group_ec2.id]
@@ -145,7 +145,7 @@ resource "aws_instance" "controller" {
 
 resource "aws_instance" "worker" {
   ami           = data.aws_ami.ubuntu.id
-  instance_type = var.instance_type
+  instance_type = var.worker_instance_type
   subnet_id     = aws_subnet.public_subnet.id
   key_name = var.key_name
   count = 2
