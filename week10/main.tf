@@ -137,10 +137,25 @@ resource "aws_instance" "master" {
   key_name = var.key_name
   vpc_security_group_ids = [aws_security_group.security_group_ec2.id]
 
-  user_data = "${file("controller_user_data.sh")}"
-  tags = {
-    Name = "Controller Node Instance"
+  user_data = "${file("master_user_data.sh")}"
+
+  root_block_device {
+    volume_size = 20
+    volume_type = "gp3"
   }
+
+  tags = {
+    Name = "K3s-Master-Node"
+  }
+
+  provisioner "local-exec" {
+    command = "sleep 60"
+  }
+}
+
+data "external" "k3s_token" {
+  program = ["bash", "-c", "sleep 120 && ssh -o StrictHostKeyChecking=no -i ${var.ssh_private_key_path} ubuntu@${aws_instance.master.public_ip} 'cat /home/ubuntu/node-token' | tr -d '\n' | jq -R '{token: .}'"]
+  depends_on = [aws_instance.master]
 }
 
 resource "aws_instance" "worker" {
@@ -151,8 +166,38 @@ resource "aws_instance" "worker" {
   count = 2
   vpc_security_group_ids = [aws_security_group.security_group_ec2.id]
 
-  user_data = "${file("worker_user_data.sh")}"
-  tags = {
-    Name = "Worker Node Instance"
+  user_data = templatefile("worker_user_data.sh", {
+    master_url   = "https://${aws_instance.master.private_ip}:6443",
+    master_token = data.external.k3s_token.result.token
+  })
+
+  root_block_device {
+    volume_size = 20
+    volume_type = "gp3"
   }
+
+  tags = {
+    Name = "K3s-Worker-Node-${count.index + 1}"
+  }
+
+  depends_on = [aws_instance.master, data.external.k3s_token]
+}
+
+resource "null_resource" "kubeconfig" {
+  provisioner "local-exec" {
+    command = "bash kubeconfig_setup.sh ${aws_instance.master.public_ip} ${var.ssh_private_key_path}"
+  }
+
+  depends_on = [aws_instance.master]
+}
+
+resource "null_resource" "deploy_wordpress" {
+  provisioner "local-exec" {
+    command = "sh scripts/deploy_wordpress.sh"
+  }
+
+  depends_on = [ 
+    null_resource.kubeconfig,
+    aws_instance.worker
+  ]
 }
