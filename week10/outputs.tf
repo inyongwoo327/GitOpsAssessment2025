@@ -18,6 +18,26 @@ output "kubernetes_api_endpoint" {
   value       = "https://${aws_instance.master.public_ip}:6443"
 }
 
+output "debug_instructions" {
+  description = "Instructions for manual debugging"
+  value = <<-EOT
+    # SSH into master node:
+    ssh -i ${var.ssh_private_key_path} ubuntu@${aws_instance.master.public_ip}
+    
+    # View K3s status:
+    sudo systemctl status k3s
+    
+    # View K3s logs:
+    sudo journalctl -u k3s
+    
+    # Check if node token exists:
+    ls -la /home/ubuntu/node-token
+    
+    # Check if kubeconfig exists:
+    ls -la /home/ubuntu/.kube/config
+  EOT
+}
+
 output "wordpress_url" {
   description = "URL to access WordPress"
   value = "http://${aws_instance.master.public_ip}/wordpress"
