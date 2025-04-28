@@ -10,3 +10,6 @@ terraform.tfstate.backup
 
 # .env
 .env
+
+node-token
+kubeconfig
