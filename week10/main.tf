@@ -143,7 +143,7 @@ resource "aws_instance" "master" {
   vpc_security_group_ids      = [aws_security_group.security_group_ec2.id]
   subnet_id                   = aws_subnet.public_subnet.id
   associate_public_ip_address = true
-  user_data                   = file("master_user_data.sh")
+  //user_data                   = file("master_user_data.sh")
 
   tags = {
     Name = "K3s Master Node"
@@ -284,10 +284,10 @@ resource "aws_instance" "worker" {
   associate_public_ip_address = true
   
   # Use template file to pass master URL and token to worker nodes
-  user_data = templatefile("worker_user_data.sh", {
-    master_url   = "https://${aws_instance.master.private_ip}:6443",
-    master_token = data.local_file.node_token.content
-  })
+  //user_data = templatefile("worker_user_data.sh", {
+  //  master_url   = "https://${aws_instance.master.private_ip}:6443",
+  //  master_token = data.local_file.node_token.content
+  //})
 
   tags = {
     Name = "K3s Worker Node ${count.index}"
