@@ -143,7 +143,7 @@ resource "aws_instance" "master" {
   vpc_security_group_ids      = [aws_security_group.security_group_ec2.id]
   subnet_id                   = aws_subnet.public_subnet.id
   associate_public_ip_address = true
-  //user_data                   = file("master_user_data.sh")
+  user_data                   = file("master_user_data.sh")
 
   tags = {
     Name = "K3s Master Node"
@@ -165,37 +165,37 @@ resource "null_resource" "wait_for_master" {
 }
 
 # Verify SSH connectivity and K3s setup
-resource "null_resource" "verify_ssh_and_setup" {
-  depends_on = [null_resource.wait_for_master]
+# resource "null_resource" "verify_ssh_and_setup" {
+#   depends_on = [null_resource.wait_for_master]
 
-  provisioner "local-exec" {
-    command = <<-EOT
-      echo "Verifying SSH connectivity to ${aws_instance.master.public_ip}..."
-      MAX_RETRIES=30
-      for i in $(seq 1 $MAX_RETRIES); do
-        echo "SSH attempt $i/$MAX_RETRIES"
-        if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i ${var.ssh_private_key_path} ubuntu@${aws_instance.master.public_ip} 'echo "SSH connection successful"' 2>/dev/null; then
-          echo "SSH connection verified!"
+#   provisioner "local-exec" {
+#     command = <<-EOT
+#       echo "Verifying SSH connectivity to ${aws_instance.master.public_ip}..."
+#       MAX_RETRIES=30
+#       for i in $(seq 1 $MAX_RETRIES); do
+#         echo "SSH attempt $i/$MAX_RETRIES"
+#         if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i ${var.ssh_private_key_path} ubuntu@${aws_instance.master.public_ip} 'echo "SSH connection successful"' 2>/dev/null; then
+#           echo "SSH connection verified!"
           
-          # Check if K3s setup is complete
-          if ssh -o StrictHostKeyChecking=no -i ${var.ssh_private_key_path} ubuntu@${aws_instance.master.public_ip} 'test -f /home/ubuntu/k3s-setup-complete && test -f /home/ubuntu/node-token' 2>/dev/null; then
-            echo "K3s setup verified!"
-            exit 0
-          else
-            echo "K3s setup not complete yet, will check again..."
-          fi
-        fi
-        echo "SSH not yet available or K3s not ready, waiting 10 seconds..."
-        sleep 10
-      done
+#           # Check if K3s setup is complete
+#           if ssh -o StrictHostKeyChecking=no -i ${var.ssh_private_key_path} ubuntu@${aws_instance.master.public_ip} 'test -f /home/ubuntu/k3s-setup-complete && test -f /home/ubuntu/node-token' 2>/dev/null; then
+#             echo "K3s setup verified!"
+#             exit 0
+#           else
+#             echo "K3s setup not complete yet, will check again..."
+#           fi
+#         fi
+#         echo "SSH not yet available or K3s not ready, waiting 10 seconds..."
+#         sleep 10
+#       done
       
-      # If we reach here, we couldn't verify SSH or K3s setup
-      echo "WARNING: Could not verify SSH connectivity or K3s setup after $MAX_RETRIES attempts."
-      echo "Will attempt to proceed anyway. Check the master node manually if issues persist."
-      exit 0  # Don't fail the deployment
-    EOT
-  }
-}
+#       # If we reach here, we couldn't verify SSH or K3s setup
+#       echo "WARNING: Could not verify SSH connectivity or K3s setup after $MAX_RETRIES attempts."
+#       echo "Will attempt to proceed anyway. Check the master node manually if issues persist."
+#       exit 0  # Don't fail the deployment
+#     EOT
+#   }
+# }
 
 # Attempt to retrieve node token
 resource "null_resource" "get_token" {

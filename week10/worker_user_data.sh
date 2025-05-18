@@ -27,28 +27,30 @@ echo "Waiting for master node to be ready..."
 sleep 60
 
 # Install K3s as agent (worker) node with retry logic
-for i in {1..5}; do
-    echo "Attempt $i to install K3s agent"
-    export K3S_URL="${master_url}"
-    export K3S_TOKEN="${master_token}"
-    export INSTALL_K3S_EXEC="--node-ip=$LOCAL_IP"
+# for i in {1..5}; do
+#     echo "Attempt $i to install K3s agent"
+#     export K3S_URL="${master_url}"
+#     export K3S_TOKEN="${master_token}"
+#     export INSTALL_K3S_EXEC="--node-ip=$LOCAL_IP"
     
-    curl -sfL https://get.k3s.io | sh - && {
-        echo "K3s agent installation successful!"
-        break
-    } || {
-        echo "K3s agent installation attempt $i failed! Retrying in 30 seconds..."
-        sleep 30
+#     curl -sfL https://get.k3s.io | sh - && {
+#         echo "K3s agent installation successful!"
+#         break
+#     } || {
+#         echo "K3s agent installation attempt $i failed! Retrying in 30 seconds..."
+#         sleep 30
         
-        # If this is the last attempt, try with a different approach
-        if [ $i -eq 5 ]; then
-            echo "Trying alternative installation method..."
-            curl -sfL https://get.k3s.io > /tmp/install-k3s.sh
-            chmod +x /tmp/install-k3s.sh
-            K3S_URL="${master_url}" K3S_TOKEN="${master_token}" INSTALL_K3S_EXEC="--node-ip=$LOCAL_IP" /tmp/install-k3s.sh
-        fi
-    }
-done
+#         # If this is the last attempt, try with a different approach
+#         if [ $i -eq 5 ]; then
+#             echo "Trying alternative installation method..."
+#             curl -sfL https://get.k3s.io > /tmp/install-k3s.sh
+#             chmod +x /tmp/install-k3s.sh
+#             K3S_URL="${master_url}" K3S_TOKEN="${master_token}" INSTALL_K3S_EXEC="--node-ip=$LOCAL_IP" /tmp/install-k3s.sh
+#         fi
+#     }
+# done
+
+
 
 # Verify K3s agent is running
 for i in {1..10}; do
