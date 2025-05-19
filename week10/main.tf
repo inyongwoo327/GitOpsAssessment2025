@@ -162,7 +162,7 @@ resource "null_resource" "get_master_token" {
   provisioner "local-exec" {
     command = <<-EOT
       echo "Waiting for master node to be ready and collecting token..."
-      MAX_RETRIES=30
+      MAX_RETRIES=5
       for i in $(seq 1 $MAX_RETRIES); do
         echo "Attempt $i/$MAX_RETRIES"
         # First check SSH connectivity
@@ -272,41 +272,6 @@ users:
 - name: default
   user: {}
 EOF
-    EOT
-  }
-}
-
-# Verify worker nodes joined the cluster
-resource "null_resource" "verify_cluster" {
-  depends_on = [aws_instance.worker, null_resource.get_kubeconfig]
-
-  provisioner "local-exec" {
-    command = <<-EOT
-      echo "Verifying all nodes joined the cluster..."
-      # Use local kubectl with the retrieved kubeconfig
-      expected_nodes=$((${var.worker_count} + 1))  # workers + master
-      
-      # Wait for all nodes to join
-      MAX_RETRIES=20
-      for i in $(seq 1 $MAX_RETRIES); do
-        if [ -f kubeconfig ]; then
-          node_count=$(KUBECONFIG=./kubeconfig kubectl get nodes 2>/dev/null | grep -v "^NAME" | wc -l || echo "0")
-          echo "Found $node_count/$expected_nodes nodes in the cluster"
-          
-          if [ "$node_count" -ge "$expected_nodes" ]; then
-            echo "All nodes successfully joined the cluster!"
-            KUBECONFIG=./kubeconfig kubectl get nodes
-            exit 0
-          fi
-        fi
-        
-        echo "Not all nodes have joined yet. Waiting 20 seconds before checking again... ($i/$MAX_RETRIES)"
-        sleep 20
-      done
-      
-      echo "WARNING: Not all nodes joined the cluster after $MAX_RETRIES attempts."
-      echo "Final node status:"
-      KUBECONFIG=./kubeconfig kubectl get nodes || echo "Could not get cluster node status"
     EOT
   }
 }
