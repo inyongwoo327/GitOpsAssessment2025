@@ -38,11 +38,6 @@ output "debug_instructions" {
   EOT
 }
 
-output "wordpress_url" {
-  description = "URL to access WordPress"
-  value = "http://${aws_instance.master.public_ip}/wordpress"
-}
-
 output "wordpress_admin_credentials" {
   description = "WordPress admin credentials"
   value = <<-EOT
