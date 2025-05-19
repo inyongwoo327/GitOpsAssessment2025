@@ -38,7 +38,13 @@ output "debug_instructions" {
   EOT
 }
 
-output "wordpress_url" {
-  description = "URL to access WordPress"
-  value = "http://${aws_instance.master.public_ip}/wordpress"
+output "wordpress_admin_credentials" {
+  description = "WordPress admin credentials"
+  value = <<-EOT
+    Username: user
+    Password: Use 'cat wordpress-password.txt' to view the password in Master Node
+    URL: http://${aws_instance.master.public_ip}:30080
+  EOT
+
+  depends_on = [null_resource.deploy_wordpress]
 }

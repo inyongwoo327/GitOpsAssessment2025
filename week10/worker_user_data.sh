@@ -19,21 +19,23 @@ if [ $? -ne 0 ]; then
 fi
 
 # Get local IP for configuration
-LOCAL_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
-echo "Worker Local IP: $LOCAL_IP"
+LOCAL_IP=$(hostname -I | awk '{print $1}')
+PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+echo "Worker Local IP: $LOCAL_IP, Public IP: $PUBLIC_IP"
 
-# Wait for a while to ensure master is ready
-echo "Waiting for master node to be ready..."
-sleep 60
+# The master IP and token will be replaced by Terraform template
+MASTER_IP="${MASTER_IP}"
+K3S_TOKEN="${master_token}"
+
+echo "Using Master IP: $MASTER_IP and token from Terraform"
+
+# Create k3s configuration directory
+sudo mkdir -p /etc/rancher/k3s
 
 # Install K3s as agent (worker) node with retry logic
 for i in {1..5}; do
     echo "Attempt $i to install K3s agent"
-    export K3S_URL="${master_url}"
-    export K3S_TOKEN="${master_token}"
-    export INSTALL_K3S_EXEC="--node-ip=$LOCAL_IP"
-    
-    curl -sfL https://get.k3s.io | sh - && {
+    curl -sfL https://get.k3s.io | K3S_URL="https://${MASTER_IP}:6443" K3S_TOKEN="${K3S_TOKEN}" sh - && {
         echo "K3s agent installation successful!"
         break
     } || {
@@ -45,7 +47,7 @@ for i in {1..5}; do
             echo "Trying alternative installation method..."
             curl -sfL https://get.k3s.io > /tmp/install-k3s.sh
             chmod +x /tmp/install-k3s.sh
-            K3S_URL="${master_url}" K3S_TOKEN="${master_token}" INSTALL_K3S_EXEC="--node-ip=$LOCAL_IP" /tmp/install-k3s.sh
+            K3S_URL="https://${MASTER_IP}:6443" K3S_TOKEN="${K3S_TOKEN}" /tmp/install-k3s.sh
         fi
     }
 done
