@@ -336,17 +336,3 @@ resource "null_resource" "deploy_wordpress" {
     EOT
   }
 }
-
-# Set up port forwarding for WordPress (optional)
-resource "null_resource" "setup_port_forwarding" {
-  depends_on = [null_resource.deploy_wordpress]
-
-  provisioner "local-exec" {
-    command = <<-EOT
-      echo "Setting up port forwarding for easier WordPress access..."
-      ssh -o StrictHostKeyChecking=no -i ${var.ssh_private_key_path} -L 8080:localhost:30080 ubuntu@${aws_instance.master.public_ip} -N -f
-      
-      echo "WordPress should now be accessible at: http://localhost:8080"
-    EOT
-  }
-}

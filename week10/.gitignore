@@ -14,3 +14,4 @@ terraform.tfstate.backup
 node-token
 kubeconfig
 *.pem
+generated_worker_user_data.sh
