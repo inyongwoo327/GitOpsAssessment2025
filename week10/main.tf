@@ -328,9 +328,6 @@ resource "null_resource" "deploy_wordpress" {
         echo "$PASS" > ~/wordpress-password.txt
       '
       
-      # Copy the password file from master
-      scp -o StrictHostKeyChecking=no -i ${var.ssh_private_key_path} ubuntu@${aws_instance.master.public_ip}:~/wordpress-password.txt ./wordpress-password.txt
-      
       echo "WordPress URL: http://${aws_instance.master.public_ip}:30080"
       echo "WordPress admin password is saved in wordpress-password.txt"
     EOT

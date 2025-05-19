@@ -42,7 +42,7 @@ output "wordpress_admin_credentials" {
   description = "WordPress admin credentials"
   value = <<-EOT
     Username: user
-    Password: Use 'cat wordpress-password.txt' to view the password
+    Password: Use 'cat wordpress-password.txt' to view the password in Master Node
     URL: http://${aws_instance.master.public_ip}:30080
   EOT
 
