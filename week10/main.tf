@@ -243,8 +243,20 @@ resource "null_resource" "get_kubeconfig" {
       for i in $(seq 1 $MAX_RETRIES); do
         if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i ${var.ssh_private_key_path} ubuntu@${aws_instance.master.public_ip} 'sudo cat /etc/rancher/k3s/k3s.yaml' > kubeconfig 2>/dev/null; then
           echo "Successfully retrieved kubeconfig"
-          # Replace localhost with the master's public IP
+          
+          # Get private IP to properly update kubeconfig
+          PRIVATE_IP=$(ssh -o StrictHostKeyChecking=no -i ${var.ssh_private_key_path} ubuntu@${aws_instance.master.public_ip} 'hostname -I | awk "{print \$1}"')
+          
+          # On macOS, sed requires an empty string parameter for in-place editing
+          sed -i '' "s/127.0.0.1/${aws_instance.master.public_ip}/g" kubeconfig 2>/dev/null || \
           sed -i "s/127.0.0.1/${aws_instance.master.public_ip}/g" kubeconfig
+          
+          # Also replace the server address if it has the private IP
+          if [ ! -z "$PRIVATE_IP" ]; then
+            sed -i '' "s/$PRIVATE_IP/${aws_instance.master.public_ip}/g" kubeconfig 2>/dev/null || \
+            sed -i "s/$PRIVATE_IP/${aws_instance.master.public_ip}/g" kubeconfig
+          fi
+          
           chmod 600 kubeconfig
           exit 0
         fi
@@ -272,6 +284,69 @@ users:
 - name: default
   user: {}
 EOF
+    EOT
+  }
+}
+
+resource "null_resource" "deploy_wordpress" {
+  depends_on = [aws_instance.worker]
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      echo "Deploying WordPress using Helm (via SSH)..."
+      
+      ssh -o StrictHostKeyChecking=no -i ${var.ssh_private_key_path} ubuntu@${aws_instance.master.public_ip} '
+        # Create namespace for WordPress
+        sudo kubectl create namespace wordpress
+        
+        # Install Helm if not already installed
+        if ! command -v helm &> /dev/null; then
+          echo "Installing Helm..."
+          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+        fi
+        
+        # Add Bitnami Helm repository
+        helm repo add bitnami https://charts.bitnami.com/bitnami
+        helm repo update
+        
+        # Install WordPress with MySQL
+        helm upgrade --install wordpress bitnami/wordpress \
+          --namespace wordpress \
+          --set service.type=NodePort \
+          --set service.nodePorts.http=30080 \
+          --set persistence.enabled=true \
+          --set persistence.storageClass="local-path" \
+          --set mariadb.primary.persistence.enabled=true \
+          --set mariadb.primary.persistence.storageClass="local-path" \
+          --version 24.2.2
+          
+        # Get WordPress credentials
+        echo "WordPress deployment initiated! It may take several minutes to complete."
+        echo "WordPress admin username: user"
+        PASS=$(sudo kubectl get secret --namespace wordpress wordpress -o jsonpath="{.data.wordpress-password}" | base64 --decode)
+        echo "WordPress admin password: $PASS"
+        echo "$PASS" > ~/wordpress-password.txt
+      '
+      
+      # Copy the password file from master
+      scp -o StrictHostKeyChecking=no -i ${var.ssh_private_key_path} ubuntu@${aws_instance.master.public_ip}:~/wordpress-password.txt ./wordpress-password.txt
+      
+      echo "WordPress URL: http://${aws_instance.master.public_ip}:30080"
+      echo "WordPress admin password is saved in wordpress-password.txt"
+    EOT
+  }
+}
+
+# Set up port forwarding for WordPress (optional)
+resource "null_resource" "setup_port_forwarding" {
+  depends_on = [null_resource.deploy_wordpress]
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      echo "Setting up port forwarding for easier WordPress access..."
+      ssh -o StrictHostKeyChecking=no -i ${var.ssh_private_key_path} -L 8080:localhost:30080 ubuntu@${aws_instance.master.public_ip} -N -f
+      
+      echo "WordPress should now be accessible at: http://localhost:8080"
     EOT
   }
 }
