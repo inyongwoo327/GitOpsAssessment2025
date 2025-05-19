@@ -23,15 +23,15 @@ LOCAL_IP=$(hostname -I | awk '{print $1}')
 echo "Worker Local IP: $LOCAL_IP"
 
 # The master IP and token will be replaced by Terraform template
-MASTER_IP="${MASTER_IP}"
-K3S_TOKEN="${master_token}"
+MASTER_IP="10.0.1.239"
+K3S_TOKEN="K1019aed1041e422d38630b27e71c86ff008611072f136030199b0140a8d1c91e7a::server:b5f781a4b8c672ebcb03af5c7d55a550"
 
 echo "Using Master IP: $MASTER_IP and token from Terraform"
 
 # Install K3s as agent (worker) node with retry logic
 for i in {1..5}; do
     echo "Attempt $i to install K3s agent"
-    curl -sfL https://get.k3s.io | K3S_URL="https://${MASTER_IP}:6443" K3S_TOKEN="${K3S_TOKEN}" INSTALL_K3S_EXEC="--node-ip=$LOCAL_IP" sh - && {
+    curl -sfL https://get.k3s.io | K3S_URL="https://10.0.1.239:6443" K3S_TOKEN="K1019aed1041e422d38630b27e71c86ff008611072f136030199b0140a8d1c91e7a::server:b5f781a4b8c672ebcb03af5c7d55a550" INSTALL_K3S_EXEC="--node-ip=$LOCAL_IP" sh - && {
         echo "K3s agent installation successful!"
         break
     } || {
@@ -43,7 +43,7 @@ for i in {1..5}; do
             echo "Trying alternative installation method..."
             curl -sfL https://get.k3s.io > /tmp/install-k3s.sh
             chmod +x /tmp/install-k3s.sh
-            K3S_URL="https://${MASTER_IP}:6443" K3S_TOKEN="${K3S_TOKEN}" INSTALL_K3S_EXEC="--node-ip=$LOCAL_IP" /tmp/install-k3s.sh
+            K3S_URL="https://10.0.1.239:6443" K3S_TOKEN="K1019aed1041e422d38630b27e71c86ff008611072f136030199b0140a8d1c91e7a::server:b5f781a4b8c672ebcb03af5c7d55a550" INSTALL_K3S_EXEC="--node-ip=$LOCAL_IP" /tmp/install-k3s.sh
         fi
     }
 done

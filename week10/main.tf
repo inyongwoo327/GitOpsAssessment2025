@@ -155,101 +155,105 @@ resource "aws_instance" "master" {
   }
 }
 
-# Wait for master to be ready
-resource "null_resource" "wait_for_master" {
+# Wait for master to be ready and retrieve node token
+resource "null_resource" "get_master_token" {
   depends_on = [aws_instance.master]
 
   provisioner "local-exec" {
-    command = "sleep 180"  # Wait for the master node to initialize
-  }
-}
-
-# Verify SSH connectivity and K3s setup
-# resource "null_resource" "verify_ssh_and_setup" {
-#   depends_on = [null_resource.wait_for_master]
-
-#   provisioner "local-exec" {
-#     command = <<-EOT
-#       echo "Verifying SSH connectivity to ${aws_instance.master.public_ip}..."
-#       MAX_RETRIES=30
-#       for i in $(seq 1 $MAX_RETRIES); do
-#         echo "SSH attempt $i/$MAX_RETRIES"
-#         if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i ${var.ssh_private_key_path} ubuntu@${aws_instance.master.public_ip} 'echo "SSH connection successful"' 2>/dev/null; then
-#           echo "SSH connection verified!"
-          
-#           # Check if K3s setup is complete
-#           if ssh -o StrictHostKeyChecking=no -i ${var.ssh_private_key_path} ubuntu@${aws_instance.master.public_ip} 'test -f /home/ubuntu/k3s-setup-complete && test -f /home/ubuntu/node-token' 2>/dev/null; then
-#             echo "K3s setup verified!"
-#             exit 0
-#           else
-#             echo "K3s setup not complete yet, will check again..."
-#           fi
-#         fi
-#         echo "SSH not yet available or K3s not ready, waiting 10 seconds..."
-#         sleep 10
-#       done
-      
-#       # If we reach here, we couldn't verify SSH or K3s setup
-#       echo "WARNING: Could not verify SSH connectivity or K3s setup after $MAX_RETRIES attempts."
-#       echo "Will attempt to proceed anyway. Check the master node manually if issues persist."
-#       exit 0  # Don't fail the deployment
-#     EOT
-#   }
-# }
-
-# Attempt to retrieve node token
-resource "null_resource" "get_token" {
-  depends_on = [null_resource.verify_ssh_and_setup]
-
-  provisioner "local-exec" {
     command = <<-EOT
-      MAX_RETRIES=15
+      echo "Waiting for master node to be ready and collecting token..."
+      MAX_RETRIES=30
       for i in $(seq 1 $MAX_RETRIES); do
-        echo "Attempt $i/$MAX_RETRIES to retrieve node token..."
-        if scp -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i ${var.ssh_private_key_path} ubuntu@${aws_instance.master.public_ip}:/home/ubuntu/node-token node-token 2>/dev/null; then
-          echo "Successfully retrieved node token"
-          exit 0
+        echo "Attempt $i/$MAX_RETRIES"
+        # First check SSH connectivity
+        if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i ${var.ssh_private_key_path} ubuntu@${aws_instance.master.public_ip} 'echo "SSH connection successful"' 2>/dev/null; then
+          echo "SSH connection verified!"
+          
+          # Check if K3s is running and get the token
+          if ssh -o StrictHostKeyChecking=no -i ${var.ssh_private_key_path} ubuntu@${aws_instance.master.public_ip} 'sudo systemctl is-active --quiet k3s && sudo cat /var/lib/rancher/k3s/server/node-token' > node-token 2>/dev/null; then
+            echo "Successfully retrieved K3s token"
+            # Make the token file readable
+            chmod 644 node-token
+            exit 0
+          else
+            echo "K3s not ready or token not available yet..."
+          fi
         fi
-        echo "Failed to get node token, retrying in 20s..."
-        sleep 20
+        echo "Waiting 10 seconds before next attempt..."
+        sleep 10
       done
       
-      # Create a placeholder token if retrieval fails
-      echo "Failed to retrieve node token after $MAX_RETRIES attempts."
-      echo "K3S_TOKEN_PLACEHOLDER" > node-token
-      echo "Created placeholder token"
+      echo "WARNING: Could not retrieve K3s token after $MAX_RETRIES attempts."
+      echo "Will attempt to proceed anyway. Check manually if issues persist."
+      echo "K3S_TOKEN_PLACEHOLDER" > node-token  # Create placeholder token
+      exit 0  # Don't fail the deployment
     EOT
   }
 }
 
-# Load the token from file
+# Read the token file after it's been created
 data "local_file" "node_token" {
-  depends_on = [null_resource.get_token]
-  filename   = "node-token"
+  depends_on = [null_resource.get_master_token]
+  filename   = "${path.module}/node-token"
 }
 
-# Attempt to retrieve kubeconfig
+# Generate a local copy of the worker user data (optional, for reference)
+resource "local_file" "worker_user_data" {
+  depends_on = [data.local_file.node_token]
+  filename   = "${path.module}/generated_worker_user_data.sh"
+  content    = templatefile("worker_user_data.sh", {
+    MASTER_IP    = aws_instance.master.private_ip,
+    master_token = trimspace(data.local_file.node_token.content),
+    K3S_TOKEN    = trimspace(data.local_file.node_token.content)
+  })
+}
+
+# K3s worker instances
+resource "aws_instance" "worker" {
+  count                       = var.worker_count
+  ami                         = data.aws_ami.ubuntu.id
+  instance_type               = var.worker_instance_type
+  key_name                    = var.key_name
+  vpc_security_group_ids      = [aws_security_group.security_group_ec2.id]
+  subnet_id                   = aws_subnet.public_subnet.id
+  associate_public_ip_address = true
+  
+  # Use the template directly instead of referencing a file that doesn't exist yet
+  user_data = templatefile("worker_user_data.sh", {
+    MASTER_IP    = aws_instance.master.private_ip,
+    master_token = trimspace(data.local_file.node_token.content),
+    K3S_TOKEN    = trimspace(data.local_file.node_token.content)
+  })
+
+  tags = {
+    Name = "K3s Worker Node ${count.index}"
+  }
+
+  depends_on = [null_resource.get_master_token]
+}
+
+# Retrieve kubeconfig from master
 resource "null_resource" "get_kubeconfig" {
-  depends_on = [null_resource.get_token]
+  depends_on = [aws_instance.master, null_resource.get_master_token]
 
   provisioner "local-exec" {
     command = <<-EOT
+      echo "Retrieving kubeconfig from master node..."
       MAX_RETRIES=15
       for i in $(seq 1 $MAX_RETRIES); do
-        echo "Attempt $i/$MAX_RETRIES to retrieve kubeconfig..."
-        if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i ${var.ssh_private_key_path} ubuntu@${aws_instance.master.public_ip} 'test -f /home/ubuntu/.kube/config' 2>/dev/null; then
-          echo "Kubeconfig exists, retrieving..."
-          if scp -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i ${var.ssh_private_key_path} ubuntu@${aws_instance.master.public_ip}:/home/ubuntu/.kube/config kubeconfig 2>/dev/null; then
-            echo "Successfully retrieved kubeconfig"
-            exit 0
-          fi
+        if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i ${var.ssh_private_key_path} ubuntu@${aws_instance.master.public_ip} 'sudo cat /etc/rancher/k3s/k3s.yaml' > kubeconfig 2>/dev/null; then
+          echo "Successfully retrieved kubeconfig"
+          # Replace localhost with the master's public IP
+          sed -i "s/127.0.0.1/${aws_instance.master.public_ip}/g" kubeconfig
+          chmod 600 kubeconfig
+          exit 0
         fi
-        echo "Failed to get kubeconfig, retrying in 20s..."
+        echo "Attempt $i/$MAX_RETRIES: Failed to get kubeconfig, retrying in 20s..."
         sleep 20
       done
       
-      # Create a minimal kubeconfig if retrieval fails
       echo "Failed to retrieve kubeconfig after $MAX_RETRIES attempts."
+      echo "Creating minimal kubeconfig placeholder"
       cat > kubeconfig << EOF
 apiVersion: v1
 clusters:
@@ -268,69 +272,41 @@ users:
 - name: default
   user: {}
 EOF
-      echo "Created minimal kubeconfig placeholder"
     EOT
   }
 }
 
-# K3s worker instances
-resource "aws_instance" "worker" {
-  count                       = var.worker_count
-  ami                         = data.aws_ami.ubuntu.id
-  instance_type               = var.worker_instance_type
-  key_name                    = var.key_name
-  vpc_security_group_ids      = [aws_security_group.security_group_ec2.id]
-  subnet_id                   = aws_subnet.public_subnet.id
-  associate_public_ip_address = true
-  
-  # Use template file to pass master URL and token to worker nodes
-  //user_data = templatefile("worker_user_data.sh", {
-  //  master_url   = "https://${aws_instance.master.private_ip}:6443",
-  //  master_token = data.local_file.node_token.content
-  //})
-
-  tags = {
-    Name = "K3s Worker Node ${count.index}"
-  }
-
-  depends_on = [null_resource.get_token]
-}
-
-# Attempt to verify worker nodes
-resource "null_resource" "verify_workers" {
-  count      = var.worker_count
-  depends_on = [aws_instance.worker]
+# Verify worker nodes joined the cluster
+resource "null_resource" "verify_cluster" {
+  depends_on = [aws_instance.worker, null_resource.get_kubeconfig]
 
   provisioner "local-exec" {
     command = <<-EOT
-      echo "Waiting for worker node ${count.index} to be accessible..."
-      MAX_RETRIES=30
+      echo "Verifying all nodes joined the cluster..."
+      # Use local kubectl with the retrieved kubeconfig
+      expected_nodes=$((${var.worker_count} + 1))  # workers + master
+      
+      # Wait for all nodes to join
+      MAX_RETRIES=20
       for i in $(seq 1 $MAX_RETRIES); do
-        if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -i ${var.ssh_private_key_path} ubuntu@${aws_instance.worker[count.index].public_ip} 'echo "Worker node ${count.index} is accessible"' 2>/dev/null; then
-          echo "Worker node ${count.index} verified!"
-          exit 0
+        if [ -f kubeconfig ]; then
+          node_count=$(KUBECONFIG=./kubeconfig kubectl get nodes 2>/dev/null | grep -v "^NAME" | wc -l || echo "0")
+          echo "Found $node_count/$expected_nodes nodes in the cluster"
+          
+          if [ "$node_count" -ge "$expected_nodes" ]; then
+            echo "All nodes successfully joined the cluster!"
+            KUBECONFIG=./kubeconfig kubectl get nodes
+            exit 0
+          fi
         fi
-        echo "Worker node ${count.index} not accessible yet, waiting 10 seconds..."
-        sleep 10
+        
+        echo "Not all nodes have joined yet. Waiting 20 seconds before checking again... ($i/$MAX_RETRIES)"
+        sleep 20
       done
-      echo "WARNING: Could not verify worker node ${count.index} after $MAX_RETRIES attempts"
-      exit 0  # Don't fail the deployment
-    EOT
-  }
-}
-
-# Attempt to deploy WordPress only if we have a kubeconfig
-resource "null_resource" "deploy_wordpress" {
-  depends_on = [null_resource.verify_workers, null_resource.get_kubeconfig]
-
-  provisioner "local-exec" {
-    command = <<-EOT
-      if [ -f kubeconfig ] && [ -s kubeconfig ]; then
-        echo "Attempting to deploy WordPress..."
-        bash deploy_app_helm.sh || echo "WordPress deployment failed, check logs"
-      else
-        echo "Kubeconfig not available, skipping WordPress deployment"
-      fi
+      
+      echo "WARNING: Not all nodes joined the cluster after $MAX_RETRIES attempts."
+      echo "Final node status:"
+      KUBECONFIG=./kubeconfig kubectl get nodes || echo "Could not get cluster node status"
     EOT
   }
 }
