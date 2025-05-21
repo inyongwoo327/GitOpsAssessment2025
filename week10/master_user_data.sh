@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e  # Exit on error
-exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1  # Log output
+exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
 
 echo "Starting K3s master node user-data script"
 
@@ -72,15 +72,15 @@ sudo cp /etc/rancher/k3s/k3s.yaml /home/ubuntu/.kube/config
 sudo chown ubuntu:ubuntu /home/ubuntu/.kube/config
 sudo chmod 600 /home/ubuntu/.kube/config
 
-# Update kubeconfig with proper IP for external access
-# Replace both localhost and empty server addresses with the proper IP
-sudo sed -i "s/127.0.0.1/$LOCAL_IP/g" /home/ubuntu/.kube/config
-sudo sed -i "s/server: https:\/\/\//:6443/server: https:\/\/$LOCAL_IP:6443/g" /home/ubuntu/.kube/config
-sudo sed -i "s/server: https:\/\/:6443/server: https:\/\/$LOCAL_IP:6443/g" /home/ubuntu/.kube/config
+# # Update kubeconfig with proper IP for external access
+# # Replace both localhost and empty server addresses with the proper IP
+# sudo sed -i "s/127.0.0.1/$LOCAL_IP/g" /home/ubuntu/.kube/config
+# sudo sed -i "s/server: https:\/\/\//:6443/server: https:\/\/$LOCAL_IP:6443/g" /home/ubuntu/.kube/config
+# sudo sed -i "s/server: https:\/\/:6443/server: https:\/\/$LOCAL_IP:6443/g" /home/ubuntu/.kube/config
 
 # Set KUBECONFIG environment variable for the ubuntu user
-echo 'export KUBECONFIG=/home/ubuntu/.kube/config' >> /home/ubuntu/.bashrc
-echo 'export KUBECONFIG=/home/ubuntu/.kube/config' >> /home/ubuntu/.profile
+echo 'export KUBECONFIG=/etc/rancher/k3s/k3s.yaml' >> /home/ubuntu/.bashrc
+echo 'export KUBECONFIG=/etc/rancher/k3s/k3s.yaml' >> /home/ubuntu/.profile
 
 # Create completion for kubectl
 sudo k3s kubectl completion bash > /home/ubuntu/.kube/kubectl_completion
