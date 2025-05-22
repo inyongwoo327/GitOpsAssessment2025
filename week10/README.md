@@ -12,13 +12,113 @@ terraform-docs markdown table --output-file README.md --output-mode inject .
   <summary>Create and show s3 backend for remote state</summary>
 
 ```
-bootstrap git:(main) ✗ terraform plan                                                              
-aws_dynamodb_table.terraform_locks: Refreshing state... [id=module_practice_db]
-aws_s3_bucket.terraform_state: Refreshing state... [id=dockerswarm-practice-bucket]
-aws_s3_bucket_versioning.versioning: Refreshing state... [id=dockerswarm-practice-bucket]
-aws_s3_bucket_server_side_encryption_configuration.encryption: Refreshing state... [id=dockerswarm-practice-bucket]
+bootstrap git:(patch0428) terraform plan                  
 
-Your infrastructure matches the configuration.
+Terraform used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # aws_dynamodb_table.terraform_locks will be created
+  + resource "aws_dynamodb_table" "terraform_locks" {
+      + arn              = (known after apply)
+      + billing_mode     = "PAY_PER_REQUEST"
+      + hash_key         = "LockID"
+      + id               = (known after apply)
+      + name             = "module_practice_db"
+      + read_capacity    = (known after apply)
+      + stream_arn       = (known after apply)
+      + stream_label     = (known after apply)
+      + stream_view_type = (known after apply)
+      + tags             = {
+          + "Name" = "terraform-lock-table"
+        }
+      + tags_all         = {
+          + "Name" = "terraform-lock-table"
+        }
+      + write_capacity   = (known after apply)
+
+      + attribute {
+          + name = "LockID"
+          + type = "S"
+        }
+
+      + point_in_time_recovery (known after apply)
+
+      + server_side_encryption (known after apply)
+
+      + ttl (known after apply)
+    }
+
+  # aws_s3_bucket.terraform_state will be created
+  + resource "aws_s3_bucket" "terraform_state" {
+      + acceleration_status         = (known after apply)
+      + acl                         = (known after apply)
+      + arn                         = (known after apply)
+      + bucket                      = "kubernetes-practice-bucket"
+      + bucket_domain_name          = (known after apply)
+      + bucket_prefix               = (known after apply)
+      + bucket_regional_domain_name = (known after apply)
+      + force_destroy               = true
+      + hosted_zone_id              = (known after apply)
+      + id                          = (known after apply)
+      + object_lock_enabled         = (known after apply)
+      + policy                      = (known after apply)
+      + region                      = (known after apply)
+      + request_payer               = (known after apply)
+      + tags                        = {
+          + "Name" = "kubernetes-practice-bucket"
+        }
+      + tags_all                    = {
+          + "Name" = "kubernetes-practice-bucket"
+        }
+      + website_domain              = (known after apply)
+      + website_endpoint            = (known after apply)
+
+      + cors_rule (known after apply)
+
+      + grant (known after apply)
+
+      + lifecycle_rule (known after apply)
+
+      + logging (known after apply)
+
+      + object_lock_configuration (known after apply)
+
+      + replication_configuration (known after apply)
+
+      + server_side_encryption_configuration (known after apply)
+
+      + versioning (known after apply)
+
+      + website (known after apply)
+    }
+
+  # aws_s3_bucket_server_side_encryption_configuration.encryption will be created
+  + resource "aws_s3_bucket_server_side_encryption_configuration" "encryption" {
+      + bucket = (known after apply)
+      + id     = (known after apply)
+
+      + rule {
+          + apply_server_side_encryption_by_default {
+              + sse_algorithm     = "AES256"
+                # (1 unchanged attribute hidden)
+            }
+        }
+    }
+
+  # aws_s3_bucket_versioning.versioning will be created
+  + resource "aws_s3_bucket_versioning" "versioning" {
+      + bucket = (known after apply)
+      + id     = (known after apply)
+
+      + versioning_configuration {
+          + mfa_delete = (known after apply)
+          + status     = "Enabled"
+        }
+    }
+
+Plan: 4 to add, 0 to change, 0 to destroy.
 ```
 </details>
 
