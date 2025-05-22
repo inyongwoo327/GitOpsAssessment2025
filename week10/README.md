@@ -765,8 +765,8 @@ May 21 18:13:25 ip-10-0-1-144 k3s[1648]: I0521 18:13:25.910051    1648 pod_start
 
 ```
 ubuntu@ip-10-0-1-223:~$ helm repo list
-NAME   	URL
-bitnami	https://charts.bitnami.com/bitnami
+NAME    URL
+bitnami https://charts.bitnami.com/bitnami
 
 ubuntu@ip-10-0-1-223:~$ kubectl logs wordpress-mariadb-0 -n wordpress
 Defaulted container "mariadb" out of: mariadb, preserve-logs-symlinks (init)
@@ -943,7 +943,7 @@ No modules.
 
 | Name | Type |
 |------|------|
-| [aws_instance.controller](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/instance) | resource |
+| [aws_instance.master](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/instance) | resource |
 | [aws_instance.worker](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/instance) | resource |
 | [aws_internet_gateway.gw](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/internet_gateway) | resource |
 | [aws_route_table.rt_table](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route_table) | resource |
@@ -951,7 +951,12 @@ No modules.
 | [aws_security_group.security_group_ec2](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group) | resource |
 | [aws_subnet.public_subnet](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/subnet) | resource |
 | [aws_vpc.main](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc) | resource |
+| [local_file.worker_user_data](https://registry.terraform.io/providers/hashicorp/local/latest/docs/resources/file) | resource |
+| [null_resource.deploy_wordpress](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
+| [null_resource.get_kubeconfig](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
+| [null_resource.get_master_token](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
 | [aws_ami.ubuntu](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/ami) | data source |
+| [local_file.node_token](https://registry.terraform.io/providers/hashicorp/local/latest/docs/data-sources/file) | data source |
 
 ## Inputs
 
@@ -959,17 +964,23 @@ No modules.
 |------|-------------|------|---------|:--------:|
 | <a name="input_availability_zone"></a> [availability\_zone](#input\_availability\_zone) | Availability Zone | `string` | `"eu-west-1a"` | no |
 | <a name="input_aws_region"></a> [aws\_region](#input\_aws\_region) | n/a | `string` | `"eu-west-1"` | no |
-| <a name="input_instance_type"></a> [instance\_type](#input\_instance\_type) | n/a | `string` | `"t2.micro"` | no |
 | <a name="input_key_name"></a> [key\_name](#input\_key\_name) | n/a | `string` | `"test"` | no |
 | <a name="input_local_ip"></a> [local\_ip](#input\_local\_ip) | Local CIDR | `string` | n/a | yes |
+| <a name="input_master_instance_type"></a> [master\_instance\_type](#input\_master\_instance\_type) | EC2 instance type for K3s master node | `string` | `"t3.medium"` | no |
 | <a name="input_public_subnet_cidr"></a> [public\_subnet\_cidr](#input\_public\_subnet\_cidr) | Public Subnet CIDR | `string` | `"10.0.1.0/24"` | no |
+| <a name="input_ssh_private_key_path"></a> [ssh\_private\_key\_path](#input\_ssh\_private\_key\_path) | Path to the private SSH key file on local machine | `string` | `"~/.ssh/test.pem"` | no |
 | <a name="input_vpc_cidr"></a> [vpc\_cidr](#input\_vpc\_cidr) | VPC CIDR | `string` | `"10.0.0.0/16"` | no |
+| <a name="input_worker_count"></a> [worker\_count](#input\_worker\_count) | Number of K3s worker nodes | `number` | `2` | no |
+| <a name="input_worker_instance_type"></a> [worker\_instance\_type](#input\_worker\_instance\_type) | EC2 instance type for K3s worker nodes | `string` | `"t3.small"` | no |
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
-| <a name="output_manager_public_ip"></a> [manager\_public\_ip](#output\_manager\_public\_ip) | n/a |
-| <a name="output_worker_public_ips"></a> [worker\_public\_ips](#output\_worker\_public\_ips) | n/a |
-
+| <a name="output_debug_instructions"></a> [debug\_instructions](#output\_debug\_instructions) | Instructions for manual debugging |
+| <a name="output_kubernetes_api_endpoint"></a> [kubernetes\_api\_endpoint](#output\_kubernetes\_api\_endpoint) | Kubernetes API endpoint |
+| <a name="output_master_private_ip"></a> [master\_private\_ip](#output\_master\_private\_ip) | Private IP address of the K3s master node |
+| <a name="output_master_public_ip"></a> [master\_public\_ip](#output\_master\_public\_ip) | Public IP address of the K3s master node |
+| <a name="output_wordpress_admin_credentials"></a> [wordpress\_admin\_credentials](#output\_wordpress\_admin\_credentials) | WordPress admin credentials |
+| <a name="output_worker_public_ips"></a> [worker\_public\_ips](#output\_worker\_public\_ips) | Public IP addresses of the K3s worker nodes |
 <!-- END_TF_DOCS -->
