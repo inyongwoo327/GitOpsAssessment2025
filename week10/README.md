@@ -1,7 +1,7 @@
 <!-- BEGIN_TF_DOCS -->
 # Objective:
-Create a fully functional Docker Swarm cluster on AWS using Terraform, and deploy a WordPress website with a MySQL backend on top of the cluster.
-This challenge will assess your ability to provision infrastructure as code, configure a container orchestration platform (Docker Swarm), and deploy containerized applications in a secure and reproducible way.
+Create a fully functional k3s Kubernetes cluster on AWS using Terraform, and deploy a WordPress website with a MySQL backend on top of the cluster.
+This challenge will assess your ability to provision infrastructure as code, configure a container orchestration platform (k3s kubernetes cluster), and deploy containerized applications in a secure and reproducible way.
 
 ## Documentation creation command
 terraform-docs markdown table --output-file README.md --output-mode inject .  
