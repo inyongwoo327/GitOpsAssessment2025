@@ -246,6 +246,6 @@ resource "null_resource" "deploy_wordpress" {
   depends_on = [null_resource.get_kubeconfig, aws_instance.worker]
 
   provisioner "local-exec" {
-    command = "${path.module}/deploy_wordpress.sh ${var.ssh_private_key_path} ${aws_instance.master.public_ip}"
+    command = "${path.module}/upload_and_deploy.sh ${var.ssh_private_key_path} ${aws_instance.master.public_ip}"
   }
 }
