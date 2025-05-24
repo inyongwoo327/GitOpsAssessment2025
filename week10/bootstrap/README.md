@@ -26,7 +26,7 @@ No modules.
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | <a name="input_billing_mode"></a> [billing\_mode](#input\_billing\_mode) | Billing Mode | `string` | `"PAY_PER_REQUEST"` | no |
-| <a name="input_bucket_name"></a> [bucket\_name](#input\_bucket\_name) | Bootstrap Bucket Name | `string` | `"dockerswarm-practice-bucket"` | no |
+| <a name="input_bucket_name"></a> [bucket\_name](#input\_bucket\_name) | Bootstrap Bucket Name | `string` | `"kubernetes-practice-bucket"` | no |
 | <a name="input_dynamodb_table_name"></a> [dynamodb\_table\_name](#input\_dynamodb\_table\_name) | Dynamo DB Table Name | `string` | `"module_practice_db"` | no |
 | <a name="input_hash_key"></a> [hash\_key](#input\_hash\_key) | Hash Key | `string` | `"LockID"` | no |
 | <a name="input_region"></a> [region](#input\_region) | n/a | `string` | `"eu-west-1"` | no |

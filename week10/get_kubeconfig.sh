@@ -15,7 +15,7 @@ echo "Retrieving kubeconfig from master node..."
 
 MAX_RETRIES=5
 for i in $(seq 1 $MAX_RETRIES); do
-  if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i ${SSH_KEY_PATH} ubuntu@${MASTER_IP} 'sudo cat /etc/rancher/k3s/k3s.yaml' > kubeconfig 2>/dev/null; then
+  if scp -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i ${SSH_KEY_PATH} ubuntu@${MASTER_IP}:/etc/rancher/k3s/k3s.yaml kubeconfig 2>/dev/null; then
     echo "Successfully retrieved kubeconfig"
     
     # Get private IP to properly update kubeconfig

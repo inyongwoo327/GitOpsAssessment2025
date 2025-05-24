@@ -1,7 +1,7 @@
 <!-- BEGIN_TF_DOCS -->
 # Objective:
-Create a fully functional Docker Swarm cluster on AWS using Terraform, and deploy a WordPress website with a MySQL backend on top of the cluster.
-This challenge will assess your ability to provision infrastructure as code, configure a container orchestration platform (Docker Swarm), and deploy containerized applications in a secure and reproducible way.
+Create a fully functional k3s Kubernetes cluster on AWS using Terraform, and deploy a WordPress website with a MySQL backend on top of the cluster.
+This challenge will assess your ability to provision infrastructure as code, configure a container orchestration platform (k3s kubernetes cluster), and deploy containerized applications in a secure and reproducible way.
 
 ## Documentation creation command
 terraform-docs markdown table --output-file README.md --output-mode inject .  
@@ -12,13 +12,113 @@ terraform-docs markdown table --output-file README.md --output-mode inject .
   <summary>Create and show s3 backend for remote state</summary>
 
 ```
-bootstrap git:(main) ✗ terraform plan                                                              
-aws_dynamodb_table.terraform_locks: Refreshing state... [id=module_practice_db]
-aws_s3_bucket.terraform_state: Refreshing state... [id=dockerswarm-practice-bucket]
-aws_s3_bucket_versioning.versioning: Refreshing state... [id=dockerswarm-practice-bucket]
-aws_s3_bucket_server_side_encryption_configuration.encryption: Refreshing state... [id=dockerswarm-practice-bucket]
+bootstrap git:(patch0428) terraform plan                  
 
-Your infrastructure matches the configuration.
+Terraform used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # aws_dynamodb_table.terraform_locks will be created
+  + resource "aws_dynamodb_table" "terraform_locks" {
+      + arn              = (known after apply)
+      + billing_mode     = "PAY_PER_REQUEST"
+      + hash_key         = "LockID"
+      + id               = (known after apply)
+      + name             = "module_practice_db"
+      + read_capacity    = (known after apply)
+      + stream_arn       = (known after apply)
+      + stream_label     = (known after apply)
+      + stream_view_type = (known after apply)
+      + tags             = {
+          + "Name" = "terraform-lock-table"
+        }
+      + tags_all         = {
+          + "Name" = "terraform-lock-table"
+        }
+      + write_capacity   = (known after apply)
+
+      + attribute {
+          + name = "LockID"
+          + type = "S"
+        }
+
+      + point_in_time_recovery (known after apply)
+
+      + server_side_encryption (known after apply)
+
+      + ttl (known after apply)
+    }
+
+  # aws_s3_bucket.terraform_state will be created
+  + resource "aws_s3_bucket" "terraform_state" {
+      + acceleration_status         = (known after apply)
+      + acl                         = (known after apply)
+      + arn                         = (known after apply)
+      + bucket                      = "kubernetes-practice-bucket"
+      + bucket_domain_name          = (known after apply)
+      + bucket_prefix               = (known after apply)
+      + bucket_regional_domain_name = (known after apply)
+      + force_destroy               = true
+      + hosted_zone_id              = (known after apply)
+      + id                          = (known after apply)
+      + object_lock_enabled         = (known after apply)
+      + policy                      = (known after apply)
+      + region                      = (known after apply)
+      + request_payer               = (known after apply)
+      + tags                        = {
+          + "Name" = "kubernetes-practice-bucket"
+        }
+      + tags_all                    = {
+          + "Name" = "kubernetes-practice-bucket"
+        }
+      + website_domain              = (known after apply)
+      + website_endpoint            = (known after apply)
+
+      + cors_rule (known after apply)
+
+      + grant (known after apply)
+
+      + lifecycle_rule (known after apply)
+
+      + logging (known after apply)
+
+      + object_lock_configuration (known after apply)
+
+      + replication_configuration (known after apply)
+
+      + server_side_encryption_configuration (known after apply)
+
+      + versioning (known after apply)
+
+      + website (known after apply)
+    }
+
+  # aws_s3_bucket_server_side_encryption_configuration.encryption will be created
+  + resource "aws_s3_bucket_server_side_encryption_configuration" "encryption" {
+      + bucket = (known after apply)
+      + id     = (known after apply)
+
+      + rule {
+          + apply_server_side_encryption_by_default {
+              + sse_algorithm     = "AES256"
+                # (1 unchanged attribute hidden)
+            }
+        }
+    }
+
+  # aws_s3_bucket_versioning.versioning will be created
+  + resource "aws_s3_bucket_versioning" "versioning" {
+      + bucket = (known after apply)
+      + id     = (known after apply)
+
+      + versioning_configuration {
+          + mfa_delete = (known after apply)
+          + status     = "Enabled"
+        }
+    }
+
+Plan: 4 to add, 0 to change, 0 to destroy.
 ```
 </details>
 
@@ -31,7 +131,7 @@ Your infrastructure matches the configuration.
 ```
 week10 git:(patch0428) ✗ terraform apply --auto-approve
 data.aws_ami.ubuntu: Reading...
-data.aws_ami.ubuntu: Read complete after 0s [id=ami-0286d0aea4d6c7a34]
+data.aws_ami.ubuntu: Read complete after 1s [id=ami-0286d0aea4d6c7a34]
 
 Terraform used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:
   + create
@@ -100,7 +200,7 @@ Terraform will perform the following actions:
           + "Name" = "K3s Master Node"
         }
       + tenancy                              = (known after apply)
-      + user_data                            = "358081222966652c883ee800c1dd3bcad1955066"
+      + user_data                            = "722da7e15644d22ee09d900a32093c679b3447dd"
       + user_data_base64                     = (known after apply)
       + user_data_replace_on_change          = false
       + vpc_security_group_ids               = (known after apply)
@@ -522,76 +622,95 @@ Changes to Outputs:
     ]
 aws_vpc.main: Creating...
 aws_vpc.main: Still creating... [10s elapsed]
-aws_vpc.main: Creation complete after 12s [id=vpc-0d507ea02db11317d]
+aws_vpc.main: Creation complete after 13s [id=vpc-027381d8f09ce139d]
 aws_internet_gateway.gw: Creating...
 aws_subnet.public_subnet: Creating...
 aws_security_group.security_group_ec2: Creating...
-aws_internet_gateway.gw: Creation complete after 0s [id=igw-0aac936462306c6e4]
+aws_internet_gateway.gw: Creation complete after 1s [id=igw-0e4b66712e7cff6d6]
 aws_route_table.rt_table: Creating...
-aws_route_table.rt_table: Creation complete after 1s [id=rtb-05b8fe220595c74bb]
-aws_security_group.security_group_ec2: Creation complete after 2s [id=sg-0bbd1f0b9faced607]
+aws_route_table.rt_table: Creation complete after 1s [id=rtb-0de3845121b1f63ac]
+aws_security_group.security_group_ec2: Creation complete after 3s [id=sg-0a17c73a1b888d704]
 aws_subnet.public_subnet: Still creating... [10s elapsed]
-aws_subnet.public_subnet: Creation complete after 11s [id=subnet-067c743f6b3845f1f]
+aws_subnet.public_subnet: Creation complete after 11s [id=subnet-0b346a7fdd0581497]
 aws_route_table_association.rt_table_association: Creating...
 aws_instance.master: Creating...
-aws_route_table_association.rt_table_association: Creation complete after 0s [id=rtbassoc-023b30d2418677c30]
+aws_route_table_association.rt_table_association: Creation complete after 1s [id=rtbassoc-0d6a82bc68d74c615]
 aws_instance.master: Still creating... [10s elapsed]
+aws_instance.master: Still creating... [20s elapsed]
 aws_instance.master: Provisioning with 'local-exec'...
 aws_instance.master (local-exec): Executing: ["/bin/sh" "-c" "sleep 60"]
-aws_instance.master: Still creating... [20s elapsed]
 aws_instance.master: Still creating... [30s elapsed]
 aws_instance.master: Still creating... [40s elapsed]
 aws_instance.master: Still creating... [50s elapsed]
 aws_instance.master: Still creating... [1m0s elapsed]
 aws_instance.master: Still creating... [1m10s elapsed]
-aws_instance.master: Creation complete after 1m13s [id=i-002507373cc3a2594]
+aws_instance.master: Still creating... [1m20s elapsed]
+aws_instance.master: Creation complete after 1m21s [id=i-01c8dd534e68f93ad]
 null_resource.get_master_token: Creating...
 null_resource.get_master_token: Provisioning with 'local-exec'...
-null_resource.get_master_token (local-exec): Executing: ["/bin/sh" "-c" "echo \"Waiting for master node to be ready and collecting token...\"\nMAX_RETRIES=5\nfor i in $(seq 1 $MAX_RETRIES); do\n  echo \"Attempt $i/$MAX_RETRIES\"\n  # First check SSH connectivity\n  if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i ~/.ssh/test.pem ubuntu@34.240.75.142 'echo \"SSH connection successful\"' 2>/dev/null; then\n    echo \"SSH connection verified!\"\n          \n    # Check if K3s is running and get the token\n    if ssh -o StrictHostKeyChecking=no -i ~/.ssh/test.pem ubuntu@34.240.75.142 'sudo systemctl is-active --quiet k3s && sudo cat /var/lib/rancher/k3s/server/node-token' > node-token 2>/dev/null; then\n      echo \"Successfully retrieved K3s token\"\n      # Make the token file readable\n      chmod 644 node-token\n      exit 0\n    else\n      echo \"K3s not ready or token not available yet...\"\n    fi\n  fi\n  echo \"Waiting 10 seconds before next attempt...\"\n  sleep 10\ndone\n      \necho \"WARNING: Could not retrieve K3s token after $MAX_RETRIES attempts.\"\necho \"Will attempt to proceed anyway. Check manually if issues persist.\"\necho \"K3S_TOKEN_PLACEHOLDER\" > node-token  # Create placeholder token\nexit 0  # Don't fail the deployment\n"]
+null_resource.get_master_token (local-exec): Executing: ["/bin/sh" "-c" "echo \"Waiting for master node to be ready and collecting token...\"\nMAX_RETRIES=5\nfor i in $(seq 1 $MAX_RETRIES); do\n  echo \"Attempt $i/$MAX_RETRIES\"\n  # First check SSH connectivity\n  if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i ~/.ssh/test.pem ubuntu@34.243.149.6 'echo \"SSH connection successful\"' 2>/dev/null; then\n    echo \"SSH connection verified!\"\n          \n    # Check if K3s is running and get the token\n    if ssh -o StrictHostKeyChecking=no -i ~/.ssh/test.pem ubuntu@34.243.149.6 'sudo systemctl is-active --quiet k3s && sudo cat /var/lib/rancher/k3s/server/node-token' > node-token 2>/dev/null; then\n      echo \"Successfully retrieved K3s token\"\n      # Make the token file readable\n      chmod 644 node-token\n      exit 0\n    else\n      echo \"K3s not ready or token not available yet...\"\n    fi\n  fi\n  echo \"Waiting 10 seconds before next attempt...\"\n  sleep 10\ndone\n      \necho \"WARNING: Could not retrieve K3s token after $MAX_RETRIES attempts.\"\necho \"Will attempt to proceed anyway. Check manually if issues persist.\"\necho \"K3S_TOKEN_PLACEHOLDER\" > node-token  # Create placeholder token\nexit 0  # Don't fail the deployment\n"]
 null_resource.get_master_token (local-exec): Waiting for master node to be ready and collecting token...
 null_resource.get_master_token (local-exec): Attempt 1/5
 null_resource.get_master_token (local-exec): SSH connection successful
 null_resource.get_master_token (local-exec): SSH connection verified!
 null_resource.get_master_token (local-exec): Successfully retrieved K3s token
-null_resource.get_master_token: Creation complete after 3s [id=2160779480608680938]
-null_resource.get_kubeconfig: Creating...
+null_resource.get_master_token: Creation complete after 4s [id=885541677935609871]
 data.local_file.node_token: Reading...
-data.local_file.node_token: Read complete after 0s [id=da0564a25ab8f9fd710494945a05ed00667a92e4]
+null_resource.get_kubeconfig: Creating...
+data.local_file.node_token: Read complete after 0s [id=94ffb0699806631952ef0274f5dcbd31902ce0b3]
 null_resource.get_kubeconfig: Provisioning with 'local-exec'...
-null_resource.get_kubeconfig (local-exec): Executing: ["/bin/sh" "-c" "      echo \"Retrieving kubeconfig from master node...\"\n      MAX_RETRIES=15\n      for i in $(seq 1 $MAX_RETRIES); do\n        if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i ~/.ssh/test.pem ubuntu@34.240.75.142 'sudo cat /etc/rancher/k3s/k3s.yaml' > kubeconfig 2>/dev/null; then\n          echo \"Successfully retrieved kubeconfig\"\n          \n          # Get private IP to properly update kubeconfig\n          PRIVATE_IP=$(ssh -o StrictHostKeyChecking=no -i ~/.ssh/test.pem ubuntu@34.240.75.142 'hostname -I | awk \"{print \\$1}\"')\n          \n          # On macOS, sed requires an empty string parameter for in-place editing\n          sed -i '' \"s/127.0.0.1/34.240.75.142/g\" kubeconfig 2>/dev/null || \\\n          sed -i \"s/127.0.0.1/34.240.75.142/g\" kubeconfig\n          \n          # Also replace the server address if it has the private IP\n          if [ ! -z \"$PRIVATE_IP\" ]; then\n            sed -i '' \"s/$PRIVATE_IP/34.240.75.142/g\" kubeconfig 2>/dev/null || \\\n            sed -i \"s/$PRIVATE_IP/34.240.75.142/g\" kubeconfig\n          fi\n          \n          chmod 600 kubeconfig\n          exit 0\n        fi\n        echo \"Attempt $i/$MAX_RETRIES: Failed to get kubeconfig, retrying in 20s...\"\n        sleep 20\n      done\n      \n      echo \"Failed to retrieve kubeconfig after $MAX_RETRIES attempts.\"\n      echo \"Creating minimal kubeconfig placeholder\"\n      cat > kubeconfig << EOF\napiVersion: v1\nclusters:\n- cluster:\n    server: https://34.240.75.142:6443\n  name: default\ncontexts:\n- context:\n    cluster: default\n    user: default\n  name: default\ncurrent-context: default\nkind: Config\npreferences: {}\nusers:\n- name: default\n  user: {}\nEOF\n"]
-null_resource.get_kubeconfig (local-exec): Retrieving kubeconfig from master node...
+null_resource.get_kubeconfig (local-exec): Executing: ["/bin/sh" "-c" "./get_kubeconfig.sh ~/.ssh/test.pem 34.243.149.6"]
 local_file.worker_user_data: Creating...
-local_file.worker_user_data: Creation complete after 0s [id=a6ce94f8671ab890b58737d5f87eeeb742e71bd4]
-aws_instance.worker[1]: Creating...
+null_resource.get_kubeconfig (local-exec): Retrieving kubeconfig from master node...
+local_file.worker_user_data: Creation complete after 0s [id=bdc19b32d2054899e18c9c71979324a62299407e]
 aws_instance.worker[0]: Creating...
+aws_instance.worker[1]: Creating...
 null_resource.get_kubeconfig (local-exec): Successfully retrieved kubeconfig
-null_resource.get_kubeconfig: Creation complete after 1s [id=7203611751304288849]
-aws_instance.worker[1]: Still creating... [10s elapsed]
+null_resource.get_kubeconfig (local-exec): Kubeconfig setup complete and saved to ./kubeconfig
+null_resource.get_kubeconfig: Creation complete after 9s [id=3139934443519763851]
 aws_instance.worker[0]: Still creating... [10s elapsed]
-aws_instance.worker[0]: Creation complete after 13s [id=i-058cb0d0d4c71c00f]
-aws_instance.worker[1]: Creation complete after 13s [id=i-0f86680f5801f99bc]
+aws_instance.worker[1]: Still creating... [10s elapsed]
+aws_instance.worker[0]: Creation complete after 14s [id=i-0f4b3318868bede0c]
+aws_instance.worker[1]: Creation complete after 14s [id=i-079c69141baef98d2]
 null_resource.deploy_wordpress: Creating...
 null_resource.deploy_wordpress: Provisioning with 'local-exec'...
-null_resource.deploy_wordpress (local-exec): Executing: ["/bin/sh" "-c" "echo \"Deploying WordPress using Helm (via SSH)...\"\n      \nssh -o StrictHostKeyChecking=no -i ~/.ssh/test.pem ubuntu@34.240.75.142 '\n  # Create namespace for WordPress\n  sudo kubectl create namespace wordpress\n        \n  # Install Helm if not already installed\n  if ! command -v helm &> /dev/null; then\n    echo \"Installing Helm...\"\n    curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash\n  fi\n        \n  # Add Bitnami Helm repository\n  helm repo add bitnami https://charts.bitnami.com/bitnami\n  helm repo update\n        \n  # Install WordPress with MySQL\n  helm upgrade --install wordpress bitnami/wordpress \\\n    --namespace wordpress \\\n    --set service.type=NodePort \\\n    --set service.nodePorts.http=30080 \\\n    --set persistence.enabled=true \\\n    --set persistence.storageClass=\"local-path\" \\\n    --set mariadb.primary.persistence.enabled=true \\\n    --set mariadb.primary.persistence.storageClass=\"local-path\" \\\n    --version 24.2.2\n          \n  # Get WordPress credentials\n  echo \"WordPress deployment initiated! It may take several minutes to complete.\"\n  echo \"WordPress admin username: user\"\n  PASS=$(sudo kubectl get secret --namespace wordpress wordpress -o jsonpath=\"{.data.wordpress-password}\" | base64 --decode)\n  echo \"WordPress admin password: $PASS\"\n  echo \"$PASS\" > ~/wordpress-password.txt\n'\n      \necho \"WordPress URL: http://34.240.75.142:30080\"\necho \"WordPress admin password is saved in wordpress-password.txt\"\n"]
-null_resource.deploy_wordpress (local-exec): Deploying WordPress using Helm (via SSH)...
+null_resource.deploy_wordpress (local-exec): Executing: ["/bin/sh" "-c" "./upload_and_deploy.sh ~/.ssh/test.pem 34.243.149.6"]
+null_resource.deploy_wordpress (local-exec): Uploading deployment scripts to master node...
+null_resource.deploy_wordpress (local-exec): Executing deployment scripts on master node...
+null_resource.deploy_wordpress (local-exec): Starting WordPress deployment orchestration on master node...
+null_resource.deploy_wordpress (local-exec): Executing WordPress deployment...
+null_resource.deploy_wordpress (local-exec): Starting WordPress deployment on K3s cluster...
+null_resource.deploy_wordpress (local-exec): Creating WordPress namespace...
 null_resource.deploy_wordpress (local-exec): namespace/wordpress created
 null_resource.deploy_wordpress (local-exec): Installing Helm...
 null_resource.deploy_wordpress (local-exec):   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
 null_resource.deploy_wordpress (local-exec):                                  Dload  Upload   Total   Spent    Left  Speed
 null_resource.deploy_wordpress (local-exec):   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
-null_resource.deploy_wordpress (local-exec): 100 11913  100 11913    0     0  83772      0 --:--:-- --:--:-- --:--:-- 83894
+null_resource.deploy_wordpress (local-exec): 100 11913  100 11913    0     0  80453      0 --:--:-- --:--:-- --:--:-- 81040
 null_resource.deploy_wordpress (local-exec): Downloading https://get.helm.sh/helm-v3.18.0-linux-amd64.tar.gz
-null_resource.deploy_wordpress (local-exec): Verifying checksum... Done.
+null_resource.deploy_wordpress (local-exec): Verifying checksum...
+null_resource.deploy_wordpress (local-exec): Done.
 null_resource.deploy_wordpress (local-exec): Preparing to install helm into /usr/local/bin
 null_resource.deploy_wordpress (local-exec): helm installed into /usr/local/bin/helm
+null_resource.deploy_wordpress (local-exec): Adding Bitnami repository...
+null_resource.deploy_wordpress: Still creating... [10s elapsed]
 null_resource.deploy_wordpress (local-exec): "bitnami" has been added to your repositories
 null_resource.deploy_wordpress (local-exec): Hang tight while we grab the latest from your chart repositories...
 null_resource.deploy_wordpress (local-exec): ...Successfully got an update from the "bitnami" chart repository
 null_resource.deploy_wordpress (local-exec): Update Complete. ⎈Happy Helming!⎈
+null_resource.deploy_wordpress (local-exec): Installing WordPress with MariaDB...
 null_resource.deploy_wordpress (local-exec): Release "wordpress" does not exist. Installing it now.
-null_resource.deploy_wordpress: Still creating... [10s elapsed]
+null_resource.deploy_wordpress: Still creating... [20s elapsed]
+null_resource.deploy_wordpress: Still creating... [30s elapsed]
+null_resource.deploy_wordpress: Still creating... [40s elapsed]
+null_resource.deploy_wordpress: Still creating... [50s elapsed]
+null_resource.deploy_wordpress: Still creating... [1m0s elapsed]
+null_resource.deploy_wordpress: Still creating... [1m10s elapsed]
+null_resource.deploy_wordpress: Still creating... [1m20s elapsed]
+null_resource.deploy_wordpress: Still creating... [1m30s elapsed]
+null_resource.deploy_wordpress: Still creating... [1m40s elapsed]
 null_resource.deploy_wordpress (local-exec): NAME: wordpress
-null_resource.deploy_wordpress (local-exec): LAST DEPLOYED: Wed May 21 18:12:40 2025
+null_resource.deploy_wordpress (local-exec): LAST DEPLOYED: Sat May 24 15:55:27 2025
 null_resource.deploy_wordpress (local-exec): NAMESPACE: wordpress
 null_resource.deploy_wordpress (local-exec): STATUS: deployed
 null_resource.deploy_wordpress (local-exec): REVISION: 1
@@ -628,12 +747,27 @@ null_resource.deploy_wordpress (local-exec):   echo Password: $(kubectl get secr
 null_resource.deploy_wordpress (local-exec): WARNING: There are "resources" sections in the chart not set. Using "resourcesPreset" is not recommended for production. For production installations, please set the following values according to your workload needs:
 null_resource.deploy_wordpress (local-exec):   - resources
 null_resource.deploy_wordpress (local-exec): +info https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
-null_resource.deploy_wordpress (local-exec): WordPress deployment initiated! It may take several minutes to complete.
+null_resource.deploy_wordpress (local-exec): Waiting for WordPress deployment to be ready...
+null_resource.deploy_wordpress (local-exec): deployment.apps/wordpress condition met
+null_resource.deploy_wordpress (local-exec): WordPress deployment completed!
 null_resource.deploy_wordpress (local-exec): WordPress admin username: user
-null_resource.deploy_wordpress (local-exec): WordPress admin password: yx3H3CX3lP
-null_resource.deploy_wordpress (local-exec): WordPress URL: http://34.240.75.142:30080
+null_resource.deploy_wordpress (local-exec): WordPress admin password: Fh8HrQsFeo
+null_resource.deploy_wordpress (local-exec): WordPress pod status:
+null_resource.deploy_wordpress (local-exec): NAME                         READY   STATUS    RESTARTS   AGE
+null_resource.deploy_wordpress (local-exec): wordpress-857545576f-pt6pd   1/1     Running   0          85s
+null_resource.deploy_wordpress (local-exec): wordpress-mariadb-0          1/1     Running   0          85s
+null_resource.deploy_wordpress (local-exec): WordPress service status:
+null_resource.deploy_wordpress (local-exec): NAME                         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                      AGE
+null_resource.deploy_wordpress (local-exec): wordpress                    NodePort    10.43.225.73    <none>        80:30080/TCP,443:32103/TCP   85s
+null_resource.deploy_wordpress (local-exec): wordpress-mariadb            ClusterIP   10.43.233.100   <none>        3306/TCP                     85s
+null_resource.deploy_wordpress (local-exec): wordpress-mariadb-headless   ClusterIP   None            <none>        3306/TCP                     85s
+null_resource.deploy_wordpress (local-exec): WordPress deployment script completed successfully!
+null_resource.deploy_wordpress (local-exec): WordPress deployment orchestration completed!
+null_resource.deploy_wordpress (local-exec): Retrieving WordPress password file...
+null_resource.deploy_wordpress (local-exec): WordPress URL: http://34.243.149.6:30080
 null_resource.deploy_wordpress (local-exec): WordPress admin password is saved in wordpress-password.txt
-null_resource.deploy_wordpress: Creation complete after 15s [id=342604733919121780]
+null_resource.deploy_wordpress (local-exec): Deployment completed successfully!
+null_resource.deploy_wordpress: Creation complete after 1m49s [id=8049004843442656433]
 
 Apply complete! Resources: 13 added, 0 changed, 0 destroyed.
 
@@ -641,7 +775,7 @@ Outputs:
 
 debug_instructions = <<EOT
 # SSH into master node:
-ssh -i ~/.ssh/test.pem ubuntu@34.240.75.142
+ssh -i ~/.ssh/test.pem ubuntu@34.243.149.6
     
 # View K3s status:
 sudo systemctl status k3s
@@ -656,18 +790,18 @@ ls -la /home/ubuntu/node-token
 ls -la /home/ubuntu/.kube/config
 
 EOT
-kubernetes_api_endpoint = "https://34.240.75.142:6443"
-master_private_ip = "10.0.1.223"
-master_public_ip = "34.240.75.142"
+kubernetes_api_endpoint = "https://34.243.149.6:6443"
+master_private_ip = "10.0.1.10"
+master_public_ip = "34.243.149.6"
 wordpress_admin_credentials = <<EOT
 Username: user
 Password: Use 'cat wordpress-password.txt' to view the password in Master Node
-URL: http://34.240.75.142:30080
+URL: http://34.243.149.6:30080
 
 EOT
 worker_public_ips = [
-  "3.249.233.141",
-  "3.254.198.86",
+  "54.154.141.66",
+  "34.242.57.191",
 ]
 ```
 </details>
