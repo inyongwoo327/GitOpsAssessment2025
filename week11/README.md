@@ -54,17 +54,21 @@ Production-ready, highly-available Kubernetes cluster using K3s on AWS with comp
 
 ## Quick Start
 
-### 1. Bootstrap Backend (First Time Only)
-```bash
+1. Bootstrap Backend (First Time Only)
+
 cd bootstrap
 terraform init
 terraform apply
 cd ..
+
 2. Configure Variables
-bashcd terraform
+
+cd terraform
 cp terraform.tfvars.example terraform.tfvars
-# Edit terraform.tfvars with your values
+
+Edit terraform.tfvars with your values
 Required variables:
+
 terraformaws_region            = "eu-west-1"
 local_ip              = "YOUR_IP/32"        # Get with: curl ifconfig.me
 key_name              = "your-key-name"
@@ -72,19 +76,19 @@ ssh_private_key_path  = "~/.ssh/your-key.pem"
 master_instance_type  = "t3.medium"
 worker_instance_type  = "t3.small"
 worker_count          = 2
+
 3. Deploy Infrastructure
 bashterraform init
 terraform plan
 terraform apply
 ⏱️ Deployment time: ~15-20 minutes
+
 4. Access Your Cluster
 bash# Export kubeconfig
 export KUBECONFIG=$(pwd)/modules/k3s-ha-cluster/kubeconfig
 
-# Check nodes
 kubectl get nodes
 
-# Check all pods
 kubectl get pods -A
 Access Information
 After deployment, access your services:
@@ -109,7 +113,8 @@ SSH Access
 bash# Primary Master
 ssh -i ~/.ssh/test.pem ubuntu@<PRIMARY_MASTER_IP>
 
-# Secondary Master
+Check Secondary Master.
+
 ssh -i ~/.ssh/test.pem ubuntu@<SECONDARY_MASTER_IP>
 Project Structure
 week11/
@@ -191,21 +196,26 @@ Useful Commands
 bash# Get cluster info
 kubectl cluster-info
 
-# View all resources
+View all resources
+
 kubectl get all -A
 
-# Check monitoring stack
+Check monitoring stack
+
 kubectl get pods -n monitoring
 
-# Check WordPress
+Check WordPress
+
 kubectl get pods -n wordpress
 
-# Get service endpoints
+Get service endpoints
+
 kubectl get svc -A
 
-# View Grafana password
+View Grafana password
+
 kubectl get secret -n monitoring kube-prometheus-stack-grafana \
   -o jsonpath="{.data.admin-password}" | base64 --decode
 
-License
+## License
 MIT
