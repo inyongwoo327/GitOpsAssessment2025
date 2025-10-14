@@ -1,0 +1,13 @@
+# Copy this file to terraform.tfvars and fill in your values
+# cp terraform.tfvars.example terraform.tfvars
+
+aws_region            = "eu-west-1"
+local_ip              = "YOUR_IP_HERE/32"    # Get with: curl ifconfig.me
+key_name              = "test"
+ssh_private_key_path  = "~/.ssh/test.pem"
+master_instance_type  = "t3.medium"
+worker_instance_type  = "t3.small"
+worker_count          = 2
+vpc_cidr              = "10.0.0.0/16"
+public_subnet_cidr    = "10.0.1.0/24"
+availability_zone     = "eu-west-1a"
