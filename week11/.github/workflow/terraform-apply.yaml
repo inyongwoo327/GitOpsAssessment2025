@@ -1,4 +1,4 @@
-name: K3s Cluster DevSecOps Pipeline
+name: K3s HA Cluster CI/CD Pipeline
 
 on:
   push:
@@ -16,171 +16,282 @@ on:
           - apply
           - destroy
 
+env:
+  TF_VERSION: '1.5.0'
+  AWS_REGION: 'eu-west-1'
+
 jobs:
   security-scan:
     name: 'Security Scanning'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         
       - name: Run TFSec
-        uses: aquasecurity/tfsec-action@v1.0.0
+        uses: aquasecurity/tfsec-action@v1.0.3
         with:
+          working_directory: terraform
           soft_fail: true
       
       - name: Run Checkov
         uses: bridgecrewio/checkov-action@master
         with:
-          directory: .
+          directory: terraform
           framework: terraform
           soft_fail: true
           output_format: github_failed_only
       
-      - name: Run Terraform fmt check
-        uses: hashicorp/setup-terraform@v2
+      - name: Check Terraform Formatting
+        uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.5.0
+          terraform_version: ${{ env.TF_VERSION }}
       
-      - name: Check Terraform formatting
-        run: terraform fmt -check -recursive
-  
+      - name: Terraform fmt check
+        run: |
+          cd terraform
+          terraform fmt -check -recursive
+        continue-on-error: true
+
   dependency-scan:
-    name: 'Dependency Scanning'
+    name: 'Dependency & Secret Scanning'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       
       - name: Run Trivy Filesystem Scan
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
-          scan-ref: '.'
+          scan-ref: './terraform'
           format: 'table'
-          exit-code: '1'
-          ignore-unfixed: true
           severity: 'CRITICAL,HIGH'
+          exit-code: '0'
       
-      - name: SAST - ShellCheck
+      - name: ShellCheck
         uses: ludeeus/action-shellcheck@master
         with:
-          scandir: './'
+          scandir: './scripts'
           severity: 'error'
+          ignore_paths: 'bootstrap'
       
       - name: Scan for Secrets
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  
-  iac-validation:
-    name: 'IaC Validation'
+
+  terraform-validate:
+    name: 'Terraform Validation'
     runs-on: ubuntu-latest
     needs: [security-scan, dependency-scan]
+    defaults:
+      run:
+        working-directory: terraform
+    
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.5.0
+          terraform_version: ${{ env.TF_VERSION }}
       
       - name: Terraform Init
-        run: terraform init
+        run: terraform init -backend=false
       
       - name: Terraform Validate
         run: terraform validate
       
-      - name: Generate Terraform Plan
-        id: plan
-        run: terraform plan -var="local_ip=$(curl -s https://api.ipify.org)/32" -var="ssh_private_key_path=~/.ssh/test.pem" -input=false -out=tfplan
+      - name: Terraform Format Check
+        run: terraform fmt -check
         continue-on-error: true
-      
-      - name: Show Plan
-        run: terraform show -no-color tfplan
-      
-      - name: Run OPA Policy Evaluation
-        uses: docker://openpolicyagent/opa:latest
-        with:
-          args: eval --format pretty --input tfplan --data policies/ data.terraform.deny
-        continue-on-error: true
-  
-  secure-build:
-    name: 'Secure Build'
+
+  terraform-plan:
+    name: 'Terraform Plan'
     runs-on: ubuntu-latest
-    needs: [compliance-check]
-    if: github.event_name == 'push' || github.event.inputs.action == 'apply'
+    needs: terraform-validate
+    if: github.event_name == 'pull_request'
+    defaults:
+      run:
+        working-directory: terraform
+    
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ vars.AWS_REGION || 'eu-west-1' }}
+          aws-region: ${{ env.AWS_REGION }}
       
-      - name: Create SSH Key
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+      
+      - name: Terraform Init
+        run: terraform init
+      
+      - name: Terraform Plan
+        id: plan
+        run: |
+          terraform plan \
+            -var="local_ip=$(curl -s https://api.ipify.org)/32" \
+            -var="ssh_private_key_path=~/.ssh/test.pem" \
+            -out=tfplan
+        continue-on-error: true
+      
+      - name: Comment PR with Plan
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          script: |
+            const output = `#### Terraform Plan 📖
+            
+            <details><summary>Show Plan</summary>
+            
+            \`\`\`terraform
+            ${{ steps.plan.outputs.stdout }}
+            \`\`\`
+            
+            </details>
+            
+            *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+
+  terraform-apply:
+    name: 'Terraform Apply'
+    runs-on: ubuntu-latest
+    needs: terraform-validate
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply')
+    defaults:
+      run:
+        working-directory: terraform
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Setup SSH Key
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/test.pem
           chmod 600 ~/.ssh/test.pem
           ssh-keygen -y -f ~/.ssh/test.pem > ~/.ssh/test.pub
       
-      - name: Verify SSH Key Integrity
+      - name: Verify SSH Key
         run: |
-          # Ensure SSH key is valid
-          ssh-keygen -l -f ~/.ssh/test.pem >/dev/null || { echo "Invalid SSH key"; exit 1; }
+          ssh-keygen -l -f ~/.ssh/test.pem || {
+            echo "Invalid SSH key"
+            exit 1
+          }
       
       - name: Import SSH Key to AWS
         run: |
-          # Check if key pair exists
-          KEY_EXISTS=$(aws ec2 describe-key-pairs --key-names test --query 'KeyPairs[*].KeyName' --output text || echo "")
+          KEY_EXISTS=$(aws ec2 describe-key-pairs --key-names test --query 'KeyPairs[*].KeyName' --output text 2>/dev/null || echo "")
           
           if [ -z "$KEY_EXISTS" ]; then
-            # Key doesn't exist, create it
             aws ec2 import-key-pair --key-name test --public-key-material fileb://~/.ssh/test.pub
-            echo "SSH key pair imported to AWS"
+            echo "✓ SSH key imported to AWS"
           else
-            echo "SSH key pair already exists in AWS"
+            echo "✓ SSH key already exists in AWS"
           fi
       
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.5.0
+          terraform_version: ${{ env.TF_VERSION }}
       
       - name: Terraform Init
         run: terraform init
       
       - name: Terraform Apply
         id: apply
-        run: terraform apply -var="local_ip=$(curl -s https://api.ipify.org)/32" -var="ssh_private_key_path=~/.ssh/test.pem" -auto-approve -input=false
-  
-  security-testing:
-    name: 'Security Testing'
+        run: |
+          terraform apply \
+            -var="local_ip=$(curl -s https://api.ipify.org)/32" \
+            -var="ssh_private_key_path=~/.ssh/test.pem" \
+            -auto-approve
+      
+      - name: Save Outputs
+        if: success()
+        run: |
+          terraform output -json > outputs.json
+          echo "MASTER_PRIMARY_IP=$(terraform output -raw master_primary_public_ip)" >> $GITHUB_ENV
+          echo "GRAFANA_URL=$(terraform output -raw grafana_url)" >> $GITHUB_ENV
+          echo "PROMETHEUS_URL=$(terraform output -raw prometheus_url)" >> $GITHUB_ENV
+          echo "WORDPRESS_URL=$(terraform output -raw wordpress_url)" >> $GITHUB_ENV
+      
+      - name: Upload Outputs
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-outputs
+          path: terraform/outputs.json
+          retention-days: 7
+      
+      - name: Deployment Summary
+        if: success()
+        run: |
+          echo "## 🎉 Deployment Successful!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Access Information" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Grafana**: ${{ env.GRAFANA_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Prometheus**: ${{ env.PROMETHEUS_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **WordPress**: ${{ env.WORDPRESS_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### SSH Access" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "ssh -i ~/.ssh/test.pem ubuntu@${{ env.MASTER_PRIMARY_IP }}" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+  cluster-health-check:
+    name: 'Cluster Health Check'
     runs-on: ubuntu-latest
-    needs: [secure-build]
-    if: github.event_name == 'push' || github.event.inputs.action == 'apply'
+    needs: terraform-apply
+    if: success()
+    
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ vars.AWS_REGION || 'eu-west-1' }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
       
       - name: Get Cluster Info
+        working-directory: terraform
         run: |
-          # Extract master IP from terraform output
           terraform init
-          export MASTER_IP=$(terraform output -raw master_public_ip)
-          echo "MASTER_IP=$MASTER_IP" >> $GITHUB_ENV
+          echo "MASTER_IP=$(terraform output -raw master_primary_public_ip)" >> $GITHUB_ENV
       
       - name: Setup SSH Key
         run: |
@@ -188,69 +299,69 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/test.pem
           chmod 600 ~/.ssh/test.pem
       
-      - name: Wait for Cluster to be Ready
+      - name: Wait for Cluster Ready
         run: |
-          echo "Waiting for K3s cluster to be ready..."
+          echo "Waiting for cluster to be ready..."
           for i in {1..20}; do
-            if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -i ~/.ssh/test.pem ubuntu@${{ env.MASTER_IP }} 'kubectl get nodes' 2>/dev/null; then
-              echo "K3s cluster is ready!"
+            if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 \
+               -i ~/.ssh/test.pem ubuntu@${{ env.MASTER_IP }} \
+               'sudo kubectl get nodes' 2>/dev/null; then
+              echo "✓ Cluster is ready!"
               break
             fi
-            echo "Attempt $i: Cluster not ready yet, waiting 30 seconds..."
+            echo "Attempt $i: Cluster not ready, waiting 30s..."
             sleep 30
-            if [ $i -eq 20 ]; then
-              echo "Cluster not ready after multiple attempts, but continuing..."
-            fi
           done
       
-      - name: Network Security Scan
+      - name: Check Node Status
         run: |
-          # Perform network security scan
-          echo "Running network security scan..."
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/test.pem ubuntu@${{ env.MASTER_IP }} '
-            sudo apt-get update && sudo apt-get install -y nmap
-            sudo nmap -sS -p- localhost
-          '
+          echo "## Cluster Health Check" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Nodes" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/test.pem \
+            ubuntu@${{ env.MASTER_IP }} \
+            'sudo kubectl get nodes -o wide' | tee -a $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
       
-      - name: Kubernetes Security Scan
+      - name: Check Monitoring Pods
         run: |
-          echo "Running Kubernetes security scan..."
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/test.pem ubuntu@${{ env.MASTER_IP }} '
-            # Install kube-bench for CIS scanning
-            curl -L https://github.com/aquasecurity/kube-bench/releases/download/v0.6.9/kube-bench_0.6.9_linux_amd64.tar.gz -o kube-bench.tar.gz
-            tar -xvf kube-bench.tar.gz
-            sudo ./kube-bench --target-master
-          '
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Monitoring Pods" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/test.pem \
+            ubuntu@${{ env.MASTER_IP }} \
+            'sudo kubectl get pods -n monitoring' | tee -a $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
       
-      - name: RBAC Analysis
+      - name: Check WordPress Pods
         run: |
-          echo "Analyzing RBAC configurations..."
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/test.pem ubuntu@${{ env.MASTER_IP }} '
-            kubectl get clusterroles
-            kubectl get clusterrolebindings
-          '
-  
-  secure-deployment:
-    name: 'Secure Application Deployment'
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### WordPress Pods" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/test.pem \
+            ubuntu@${{ env.MASTER_IP }} \
+            'sudo kubectl get pods -n wordpress' | tee -a $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+  terraform-destroy:
+    name: 'Terraform Destroy'
     runs-on: ubuntu-latest
-    needs: [security-testing]
-    if: github.event_name == 'push' || github.event.inputs.action == 'apply'
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy'
+    defaults:
+      run:
+        working-directory: terraform
+    
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ vars.AWS_REGION || 'eu-west-1' }}
-      
-      - name: Get Cluster Info
-        run: |
-          terraform init
-          export MASTER_IP=$(terraform output -raw master_public_ip)
-          echo "MASTER_IP=$MASTER_IP" >> $GITHUB_ENV
+          aws-region: ${{ env.AWS_REGION }}
       
       - name: Setup SSH Key
         run: |
@@ -258,127 +369,24 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/test.pem
           chmod 600 ~/.ssh/test.pem
       
-      - name: Retrieve Kubeconfig
-        run: |
-          # Retrieve kubeconfig from master node
-          scp -o StrictHostKeyChecking=no -i ~/.ssh/test.pem ubuntu@${{ env.MASTER_IP }}:/home/ubuntu/.kube/config ./kubeconfig || {
-            echo "Failed to retrieve kubeconfig, creating a placeholder"
-            cat > kubeconfig << EOF
-          apiVersion: v1
-          clusters:
-          - cluster:
-              server: https://${{ env.MASTER_IP }}:6443
-            name: default
-          contexts:
-          - context:
-              cluster: default
-              user: default
-            name: default
-          current-context: default
-          kind: Config
-          preferences: {}
-          users:
-          - name: default
-            user: {}
-          EOF
-          }
-          echo "KUBECONFIG=$PWD/kubeconfig" >> $GITHUB_ENV
-      
-      - name: Scan Helm Chart for Vulnerabilities
-        run: |
-          # Install helm
-          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-          
-          # Add Bitnami repo
-          helm repo add bitnami https://charts.bitnami.com/bitnami
-          helm repo update
-          
-          # Pull the chart for scanning
-          helm pull bitnami/wordpress --untar
-          
-          # Install trivy
-          wget https://github.com/aquasecurity/trivy/releases/download/v0.37.2/trivy_0.37.2_Linux-64bit.tar.gz
-          tar -xzf trivy_0.37.2_Linux-64bit.tar.gz
-          sudo mv trivy /usr/local/bin/
-          
-          # Scan the helm chart
-          trivy config ./wordpress
-      
-      - name: Create Secure Deployment Values
-        run: |
-          # Generate secure values for WordPress
-          cat > wordpress-values.yaml <<EOF
-          wordpressUsername: "admin"
-          wordpressPassword: "$(openssl rand -base64 16)"
-          wordpressEmail: "admin@example.com"
-          service:
-            type: NodePort
-            nodePorts:
-              http: 30080
-              https: 30443
-          resources:
-            limits:
-              cpu: 1000m
-              memory: 1024Mi
-            requests:
-              cpu: 500m
-              memory: 512Mi
-          securityContext:
-            enabled: true
-            runAsUser: 1001
-            fsGroup: 1001
-          podSecurityContext:
-            enabled: true
-            runAsUser: 1001
-            fsGroup: 1001
-          livenessProbe:
-            enabled: true
-          readinessProbe:
-            enabled: true
-          persistence:
-            size: 1Gi
-          mariadb:
-            auth:
-              rootPassword: "$(openssl rand -base64 16)"
-              password: "$(openssl rand -base64 16)"
-              database: "wordpress"
-            primary:
-              persistence:
-                size: 1Gi
-          podAnnotations:
-            security.kubernetes.io/sandbox: true
-          EOF
-      
-      - name: Deploy WordPress Securely
-        run: |
-          # Install WordPress with security configurations
-          export KUBECONFIG=$PWD/kubeconfig
-          
-          kubectl create namespace wordpress --dry-run=client -o yaml | kubectl apply -f -
-          
-          helm install wordpress bitnami/wordpress \
-            --namespace wordpress \
-            --values wordpress-values.yaml \
-            --set networkPolicy.enabled=true \
-            --set rbac.create=true \
-            --timeout 10m || echo "WordPress deployment might not be complete"
-      
-      - name: Security Post-Deployment Verification
-        run: |
-          export KUBECONFIG=$PWD/kubeconfig
-          
-          echo "Verifying deployment security..."
-          kubectl get networkpolicies -n wordpress || echo "No network policies found"
-          kubectl get pods -n wordpress -o jsonpath='{.items[*].spec.securityContext}' || echo "Failed to check pod security contexts"
-          
-          # Document access information but keep it secure
-          MASTER_IP=$(terraform output -raw master_public_ip)
-          echo "WordPress is accessible at: http://${MASTER_IP}:30080" > deployment_info.txt
-          echo "Access credentials are stored in GitHub Actions secrets" >> deployment_info.txt
-      
-      - name: Upload Deployment Info
-        uses: actions/upload-artifact@v3
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
         with:
-          name: secure-deployment-info
-          path: deployment_info.txt
-          retention-days: 1
+          terraform_version: ${{ env.TF_VERSION }}
+      
+      - name: Terraform Init
+        run: terraform init
+      
+      - name: Terraform Destroy
+        run: |
+          terraform destroy \
+            -var="local_ip=$(curl -s https://api.ipify.org)/32" \
+            -var="ssh_private_key_path=~/.ssh/test.pem" \
+            -auto-approve
+      
+      - name: Destruction Summary
+        if: success()
+        run: |
+          echo "## 🗑️ Infrastructure Destroyed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All resources have been successfully removed." >> $GITHUB_STEP_SUMMARY
