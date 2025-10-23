@@ -1,0 +1,46 @@
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+!terraform.tfvars.example
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# Kubeconfig
+kubeconfig
+*.kubeconfig
+
+# Backup files
+*.backup
+*.bak
+*.swp
+*.swo
+*~
+
+# SSH keys
+*.pem
+*.pub
+id_rsa*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Logs
+*.log
+
+# Local test files
+test-*
+temp-*
