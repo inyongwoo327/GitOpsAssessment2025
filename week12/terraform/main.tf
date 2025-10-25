@@ -23,21 +23,28 @@ module "k3s_cluster" {
   depends_on = [module.network]
 }
 
-module "monitoring" {
-  source = "./modules/monitoring"
+# Configure Kubernetes and Helm providers to use the kubeconfig
+provider "kubernetes" {
+  config_path = module.k3s_cluster.kubeconfig_path
+}
 
-  master_ip             = module.k3s_cluster.master_primary_public_ip
-  ssh_private_key_path  = var.ssh_private_key_path
+provider "helm" {
+  kubernetes {
+    config_path = module.k3s_cluster.kubeconfig_path
+  }
+}
+
+# Deploy ArgoCD using declarative Helm provider
+module "argocd" {
+  source = "./modules/argocd"
+
+  kubeconfig_path       = module.k3s_cluster.kubeconfig_path
   cluster_ready_trigger = module.k3s_cluster.kubeconfig_path
 
   depends_on = [module.k3s_cluster]
-}
 
-# Deploy WordPress after monitoring
-resource "null_resource" "deploy_wordpress" {
-  depends_on = [module.monitoring]
-
-  provisioner "local-exec" {
-    command = "${path.root}/../scripts/deployment/upload_and_deploy.sh ${var.ssh_private_key_path} ${module.k3s_cluster.master_primary_public_ip}"
+  providers = {
+    kubernetes = kubernetes
+    helm       = helm
   }
 }

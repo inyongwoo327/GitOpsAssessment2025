@@ -1,28 +1,17 @@
-variable "region" {
-    type = string
-    default = "eu-west-1"
+variable "aws_region" {
+  description = "AWS region for the S3 bucket and DynamoDB table"
+  type        = string
+  default     = "eu-west-1"
 }
 
-variable "bucket_name" {
-  description = "Bootstrap Bucket Name"
+variable "state_bucket_name" {
+  description = "Name of the S3 bucket for Terraform state (must be globally unique)"
   type        = string
-  default = "kubernetes-practice-bucket"
+  default     = "k3s-ha-ew-terraform-state-bucket"
 }
 
 variable "dynamodb_table_name" {
-  description = "Dynamo DB Table Name"
+  description = "Name of the DynamoDB table for state locking"
   type        = string
-  default = "module_practice_db"
-}
-
-variable "billing_mode" {
-  description = "Billing Mode"
-  type        = string
-  default = "PAY_PER_REQUEST"
-}
-
-variable "hash_key" {
-  description = "Hash Key"
-  type        = string
-  default = "LockID"
+  default     = "k3s-ha-terraform-state-lock"
 }

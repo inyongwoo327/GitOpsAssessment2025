@@ -33,7 +33,6 @@ resource "aws_instance" "master_primary" {
     volume_type = "gp3"
   }
 
-  # Wait for instance to be ready
   provisioner "remote-exec" {
     inline = ["echo 'Instance ready'"]
     
@@ -47,9 +46,27 @@ resource "aws_instance" "master_primary" {
   }
 }
 
+# Upload K3s installation script
+resource "null_resource" "upload_k3s_scripts" {
+  depends_on = [aws_instance.master_primary]
+
+  connection {
+    type        = "ssh"
+    user        = "ubuntu"
+    private_key = file(var.ssh_private_key_path)
+    host        = aws_instance.master_primary.public_ip
+    timeout     = "5m"
+  }
+
+  provisioner "file" {
+    source      = "${path.root}/../scripts/k3s-setup/install_k3s_primary.sh"
+    destination = "/home/ubuntu/install_k3s_primary.sh"
+  }
+}
+
 # Install K3s on primary master
 resource "null_resource" "install_k3s_primary" {
-  depends_on = [aws_instance.master_primary]
+  depends_on = [null_resource.upload_k3s_scripts]
 
   connection {
     type        = "ssh"
@@ -61,45 +78,8 @@ resource "null_resource" "install_k3s_primary" {
 
   provisioner "remote-exec" {
     inline = [
-      "set -e",
-      "echo '=== Installing K3s Primary Master ==='",
-      "sudo apt-get update -qq",
-      "sudo apt-get install -y -qq apt-transport-https ca-certificates curl",
-      
-      # Create K3s config
-      "sudo mkdir -p /etc/rancher/k3s",
-      "cat <<EOF | sudo tee /etc/rancher/k3s/config.yaml",
-      "write-kubeconfig-mode: '0644'",
-      "cluster-init: true",
-      "tls-san:",
-      "  - ${aws_instance.master_primary.public_ip}",
-      "  - ${aws_instance.master_primary.private_ip}",
-      "node-ip: ${aws_instance.master_primary.private_ip}",
-      "disable:",
-      "  - traefik",
-      "EOF",
-      
-      # Install K3s
-      "echo 'Installing K3s...'",
-      "curl -sfL https://get.k3s.io | sh -s - server",
-      
-      # Wait for K3s
-      "echo 'Waiting for K3s to be ready...'",
-      "sleep 30",
-      "for i in {1..30}; do sudo systemctl is-active --quiet k3s && break || sleep 10; done",
-      
-      # Setup kubeconfig
-      "mkdir -p $HOME/.kube",
-      "sudo cp /etc/rancher/k3s/k3s.yaml $HOME/.kube/config",
-      "sudo chown $(id -u):$(id -g) $HOME/.kube/config",
-      "chmod 600 $HOME/.kube/config",
-      
-      # Save token
-      "sudo cp /var/lib/rancher/k3s/server/node-token $HOME/node-token",
-      "sudo chown ubuntu:ubuntu $HOME/node-token",
-      
-      "echo '=== K3s Primary Master Ready ==='",
-      "sudo kubectl get nodes"
+      "chmod +x /home/ubuntu/install_k3s_primary.sh",
+      "/home/ubuntu/install_k3s_primary.sh ${aws_instance.master_primary.public_ip} ${aws_instance.master_primary.private_ip}"
     ]
   }
 }
@@ -153,10 +133,28 @@ resource "aws_instance" "master_secondary" {
   }
 }
 
+# Upload secondary script
+resource "null_resource" "upload_k3s_secondary_script" {
+  depends_on = [aws_instance.master_secondary]
+
+  connection {
+    type        = "ssh"
+    user        = "ubuntu"
+    private_key = file(var.ssh_private_key_path)
+    host        = aws_instance.master_secondary.public_ip
+    timeout     = "5m"
+  }
+
+  provisioner "file" {
+    source      = "${path.root}/../scripts/k3s-setup/install_k3s_secondary.sh"
+    destination = "/home/ubuntu/install_k3s_secondary.sh"
+  }
+}
+
 # Install K3s on secondary master
 resource "null_resource" "install_k3s_secondary" {
   depends_on = [
-    aws_instance.master_secondary,
+    null_resource.upload_k3s_secondary_script,
     data.external.k3s_token
   ]
 
@@ -170,27 +168,15 @@ resource "null_resource" "install_k3s_secondary" {
 
   provisioner "remote-exec" {
     inline = [
-      "set -e",
-      "echo '=== Installing K3s Secondary Master ==='",
-      "sudo apt-get update -qq",
-      "sudo apt-get install -y -qq curl",
-      
-      # Install K3s joining the cluster
-      "echo 'Joining cluster...'",
-      "curl -sfL https://get.k3s.io | K3S_URL='https://${aws_instance.master_primary.private_ip}:6443' K3S_TOKEN='${data.external.k3s_token.result.token}' sh -s - server",
-      
-      # Wait
-      "sleep 30",
-      "for i in {1..30}; do sudo systemctl is-active --quiet k3s && break || sleep 10; done",
-      
-      "echo '=== K3s Secondary Master Ready ==='"
+      "chmod +x /home/ubuntu/install_k3s_secondary.sh",
+      "/home/ubuntu/install_k3s_secondary.sh ${aws_instance.master_primary.private_ip} '${data.external.k3s_token.result.token}'"
     ]
   }
 }
 
 # Worker Nodes
 resource "aws_instance" "worker" {
-  count = var.worker_count
+  count      = var.worker_count
   depends_on = [null_resource.install_k3s_secondary]
 
   ami                         = data.aws_ami.ubuntu.id
@@ -223,11 +209,30 @@ resource "aws_instance" "worker" {
   }
 }
 
+# Upload worker scripts
+resource "null_resource" "upload_k3s_worker_scripts" {
+  count      = var.worker_count
+  depends_on = [aws_instance.worker]
+
+  connection {
+    type        = "ssh"
+    user        = "ubuntu"
+    private_key = file(var.ssh_private_key_path)
+    host        = aws_instance.worker[count.index].public_ip
+    timeout     = "5m"
+  }
+
+  provisioner "file" {
+    source      = "${path.root}/../scripts/k3s-setup/install_k3s_worker.sh"
+    destination = "/home/ubuntu/install_k3s_worker.sh"
+  }
+}
+
 # Install K3s on workers
 resource "null_resource" "install_k3s_workers" {
   count = var.worker_count
   depends_on = [
-    aws_instance.worker,
+    null_resource.upload_k3s_worker_scripts,
     data.external.k3s_token
   ]
 
@@ -241,43 +246,23 @@ resource "null_resource" "install_k3s_workers" {
 
   provisioner "remote-exec" {
     inline = [
-      "set -e",
-      "echo '=== Installing K3s Worker ${count.index + 1} ==='",
-      "sudo apt-get update -qq",
-      "sudo apt-get install -y -qq curl",
-      
-      # Install K3s agent
-      "curl -sfL https://get.k3s.io | K3S_URL='https://${aws_instance.master_primary.private_ip}:6443' K3S_TOKEN='${data.external.k3s_token.result.token}' sh -",
-      
-      # Wait
-      "sleep 20",
-      "for i in {1..20}; do sudo systemctl is-active --quiet k3s-agent && break || sleep 10; done",
-      
-      "echo '=== K3s Worker ${count.index + 1} Ready ==='"
+      "chmod +x /home/ubuntu/install_k3s_worker.sh",
+      "/home/ubuntu/install_k3s_worker.sh ${count.index + 1} ${aws_instance.master_primary.private_ip} '${data.external.k3s_token.result.token}'"
     ]
   }
 }
 
-# Get kubeconfig
+# Get kubeconfig using script
 resource "null_resource" "get_kubeconfig" {
   depends_on = [null_resource.install_k3s_workers]
 
   provisioner "local-exec" {
-    command = <<-EOT
-      scp -o StrictHostKeyChecking=no -i ${var.ssh_private_key_path} \
-        ubuntu@${aws_instance.master_primary.public_ip}:/home/ubuntu/.kube/config \
-        ${path.module}/kubeconfig
-      
-      if command -v sed > /dev/null 2>&1; then
-        if sed --version 2>&1 | grep -q GNU; then
-          sed -i "s|https://127.0.0.1:6443|https://${aws_instance.master_primary.public_ip}:6443|g" ${path.module}/kubeconfig
-        else
-          sed -i '' "s|https://127.0.0.1:6443|https://${aws_instance.master_primary.public_ip}:6443|g" ${path.module}/kubeconfig
-        fi
-      fi
-      
-      chmod 600 ${path.module}/kubeconfig
-      echo "Kubeconfig saved to ${path.module}/kubeconfig"
-    EOT
+    command = "${path.root}/../scripts/k3s-setup/get_kubeconfig.sh ${var.ssh_private_key_path} ${aws_instance.master_primary.public_ip} ${path.module}/kubeconfig"
   }
+}
+
+# Wait for kubeconfig to be available
+resource "time_sleep" "wait_for_kubeconfig" {
+  depends_on = [null_resource.get_kubeconfig]
+  create_duration = "10s"
 }
