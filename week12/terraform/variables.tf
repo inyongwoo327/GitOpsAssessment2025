@@ -54,3 +54,9 @@ variable "availability_zone" {
   type        = string
   default     = "eu-west-1a"
 }
+
+variable "gitops_repo_url" {
+  description = "Git repository URL for GitOps manifests (HTTPS)"
+  type        = string
+  default     = "https://github.com/inyongwoo327/GitOpsAssessment2025.git"
+}

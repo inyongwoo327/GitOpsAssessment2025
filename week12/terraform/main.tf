@@ -23,17 +23,6 @@ module "k3s_cluster" {
   depends_on = [module.network]
 }
 
-# Configure Kubernetes and Helm providers to use the kubeconfig
-provider "kubernetes" {
-  config_path = module.k3s_cluster.kubeconfig_path
-}
-
-provider "helm" {
-  kubernetes {
-    config_path = module.k3s_cluster.kubeconfig_path
-  }
-}
-
 # Deploy ArgoCD using declarative Helm provider
 module "argocd" {
   source = "./modules/argocd"
@@ -42,9 +31,4 @@ module "argocd" {
   cluster_ready_trigger = module.k3s_cluster.kubeconfig_path
 
   depends_on = [module.k3s_cluster]
-
-  providers = {
-    kubernetes = kubernetes
-    helm       = helm
-  }
 }
