@@ -1,6 +1,4 @@
 # ArgoCD Module - Declarative Installation
-# Providers are configured in the root module and passed here
-
 terraform {
   required_providers {
     kubernetes = {
@@ -20,7 +18,6 @@ terraform {
   }
 }
 
-# Rest of your code below (namespace, helm_release, etc.)
 # Create ArgoCD namespace
 resource "kubernetes_namespace" "argocd" {
   metadata {
@@ -28,7 +25,7 @@ resource "kubernetes_namespace" "argocd" {
   }
 }
 
-# Install ArgoCD via Helm (declarative!)
+# Install ArgoCD via Helm
 resource "helm_release" "argocd" {
   name       = "argocd"
   repository = "https://argoproj.github.io/argo-helm"
@@ -56,7 +53,6 @@ resource "helm_release" "argocd" {
     value = "true"
   }
 
-  # Resource limits for efficiency
   set {
     name  = "controller.resources.limits.cpu"
     value = "500m"
@@ -109,15 +105,23 @@ data "kubernetes_secret" "argocd_initial_password" {
   depends_on = [time_sleep.wait_for_argocd]
 }
 
-# Apply ArgoCD Applications
-resource "kubernetes_manifest" "wordpress_app" {
-  manifest = yamldecode(file("${path.root}/../k8s-manifests/argocd-apps/wordpress-app.yaml"))
+# Apply ArgoCD Applications via kubectl command
+resource "null_resource" "apply_argocd_apps" {
+  depends_on = [helm_release.argocd, time_sleep.wait_for_argocd]
 
-  depends_on = [helm_release.argocd]
-}
+  provisioner "local-exec" {
+    command = <<-EOT
+      export KUBECONFIG=${var.kubeconfig_path}
+      echo "Waiting for cluster to be fully ready..."
+      sleep 20
+      echo "Applying ArgoCD applications..."
+      kubectl apply -f ${path.root}/../k8s-manifests/argocd-apps/wordpress-app.yaml || true
+      kubectl apply -f ${path.root}/../k8s-manifests/argocd-apps/prometheus-app.yaml || true
+      echo "ArgoCD applications applied"
+    EOT
+  }
 
-resource "kubernetes_manifest" "prometheus_app" {
-  manifest = yamldecode(file("${path.root}/../k8s-manifests/argocd-apps/prometheus-app.yaml"))
-
-  depends_on = [helm_release.argocd]
+  triggers = {
+    always_run = timestamp()
+  }
 }
