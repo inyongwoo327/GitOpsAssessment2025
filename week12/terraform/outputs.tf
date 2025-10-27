@@ -80,7 +80,6 @@ output "access_instructions" {
       kubectl get nodes
       kubectl get applications -n argocd
       kubectl get pods -n wordpress
-      kubectl get pods -n monitoring
     
     SSH Access:
       ssh -i ~/.ssh/test.pem ubuntu@${module.k3s_cluster.master_primary_public_ip}

@@ -33,15 +33,5 @@ provider "aws" {
   region = var.aws_region
 }
 
-# Kubernetes and Helm providers
-# These will only work after the kubeconfig is created by the k3s_cluster module
-# Terraform handles the dependency through the module references
-provider "kubernetes" {
-  config_path = "~/.kube/config"  # Placeholder, will be overridden by actual kubeconfig
-}
-
-provider "helm" {
-  kubernetes {
-    config_path = "~/.kube/config"  # Placeholder, will be overridden by actual kubeconfig
-  }
-}
+# Kubernetes and Helm providers - will be configured by modules
+# Don't configure them here, let modules handle it

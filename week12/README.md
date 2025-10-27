@@ -1,13 +1,12 @@
 # K3s High-Availability Cluster on AWS
 
-Production-ready Kubernetes (K3s) cluster with HA control plane and complete observability.
+Production-ready Kubernetes (K3s) cluster with HA control plane and GitOps (ArgoCD).
 
 ## Features
 
 - ✅ **High Availability**: 2 master nodes (no single point of failure)
-- ✅ **Complete Monitoring**: Prometheus, Grafana, AlertManager
 - ✅ **Modular Design**: Organized Terraform modules
-- ✅ **Cost Effective**: ~$90-100/month
+- ✅ **GitOps**: ArgoCD
 
 ## Architecture
 ```
@@ -18,12 +17,31 @@ AWS VPC (10.0.0.0/16)
 ├── Worker Nodes
 │   ├── Worker 1 - t3.small
 │   └── Worker 2 - t3.small
-├── Monitoring Stack
+├── GitOps
 │   ├── Prometheus  :30090
 │   ├── Grafana     :30300
 │   └── AlertManager :30093
+|   └── ArgoCD      :30080
 └── Applications
-    └── WordPress   :30080
+    └── WordPress   :30081
+```
+
+```
+Terraform (One Command: terraform apply)
+├── Infrastructure Layer
+│   ├── VPC, Subnets, Security Groups (Declarative ✅)
+│   └── EC2 Instances (Declarative ✅)
+│
+├── K3s Installation (Imperative ⚠️)
+│   ├── null_resource + file provisioner (uploads scripts)
+│   └── null_resource + remote-exec (runs scripts)
+│
+├── ArgoCD Installation (Mixed 🔀)
+│   ├── helm_release resource (Declarative ✅)
+│   └── null_resource + kubectl (Imperative ⚠️)
+│
+└── ArgoCD Applications (Imperative ⚠️)
+    └── null_resource + kubectl apply (Imperative)
 ```
 
 ## Prerequisites
@@ -83,9 +101,14 @@ After deployment:
 - AlertManager: `http://<MASTER_IP>:30093`
 
 **WordPress:**
-- URL: `http://<MASTER_IP>:30080`
+- URL: `http://<MASTER_IP>:30081`
 - Username: `admin`
 - Password: `ssh -i ~/.ssh/test.pem ubuntu@<MASTER_IP> 'cat ~/wordpress-password.txt'`
+
+**ArgoCD:**
+- URL: `http://<MASTER_IP>:30080`
+- Username: `admin`
+- Password: Run 'terraform output -raw argocd_admin_password'
 
 **SSH:**
 ```bash
@@ -94,19 +117,48 @@ ssh -i ~/.ssh/test.pem ubuntu@
 
 ## Project Structure
 ```
-week11/
-├── terraform/
-│   ├── main.tf
-│   ├── variables.tf
-│   ├── outputs.tf
-│   └── modules/
-│       ├── network/           # VPC, Subnets, Security Groups
-│       ├── k3s-ha-cluster/    # 2 Masters + 2 Workers
-│       └── monitoring/        # Prometheus Stack
-├── scripts/
-│   └── deployment/
-│       └── wordpress_deployment.sh
-└── bootstrap/                 # S3 + DynamoDB backend
+week12
+├── bootstrap
+│   ├── bootstrap.tf
+│   ├── destroy.sh
+│   ├── README.md
+│   ├── terraform.tfstate
+│   ├── terraform.tfstate.backup
+│   └── variables.tf
+├── k8s-manifests
+│   └── argocd-apps
+│       ├── prometheus-app.yaml
+│       └── wordpress-app.yaml
+├── README.md
+├── scripts
+│   └── k3s-setup
+│       ├── get_kubeconfig.sh
+│       ├── install_k3s_primary.sh
+│       ├── install_k3s_secondary.sh
+│       └── install_k3s_worker.sh
+└── terraform
+    ├── argocd-password.txt
+    ├── backend.tf
+    ├── main.tf
+    ├── modules
+    │   ├── argocd
+    │   │   ├── main.tf
+    │   │   ├── outputs.tf
+    │   │   └── variables.tf
+    │   ├── k3s-ha-cluster
+    │   │   ├── kubeconfig
+    │   │   ├── main.tf
+    │   │   ├── outputs.tf
+    │   │   └── variables.tf
+    │   └── network
+    │       ├── main.tf
+    │       ├── outputs.tf
+    │       └── variables.tf
+    ├── outputs.tf
+    ├── provider.tf
+    ├── terraform.tfvars
+    ├── terraform.tfvars.example
+    └── variables.tf
 ```
 
 ## Useful Commands
@@ -154,19 +206,11 @@ cd bootstrap
 terraform destroy
 ```
 
-## Cost
-
-Monthly AWS costs (eu-west-1):
-- 2x t3.medium (masters): ~$60
-- 2x t3.small (workers): ~$30
-- Data transfer: ~$5-10
-- **Total: ~$90-100/month**
-
 ## Requirements Met
 
 ✅ High-availability control plane (2 masters)  
 ✅ Organized folder structure (modular)  
-✅ kube-prometheus-stack deployed  
+✅ ArgoCD deployed
 
 ## Support
 
