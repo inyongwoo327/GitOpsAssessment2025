@@ -1,28 +1,26 @@
 # ArgoCD Module - Declarative Installation
+# Providers are configured in the root module and passed here
+
 terraform {
   required_providers {
-    helm = {
-      source  = "hashicorp/helm"
-      version = "~> 2.12"
-    }
     kubernetes = {
       source  = "hashicorp/kubernetes"
       version = "~> 2.25"
+      configuration_aliases = [kubernetes]
+    }
+    helm = {
+      source  = "hashicorp/helm"
+      version = "~> 2.12"
+      configuration_aliases = [helm]
+    }
+    time = {
+      source  = "hashicorp/time"
+      version = "~> 0.10"
     }
   }
 }
 
-# Configure providers to use the kubeconfig passed from parent
-provider "kubernetes" {
-  config_path = var.kubeconfig_path
-}
-
-provider "helm" {
-  kubernetes {
-    config_path = var.kubeconfig_path
-  }
-}
-
+# Rest of your code below (namespace, helm_release, etc.)
 # Create ArgoCD namespace
 resource "kubernetes_namespace" "argocd" {
   metadata {
@@ -35,7 +33,7 @@ resource "helm_release" "argocd" {
   name       = "argocd"
   repository = "https://argoproj.github.io/argo-helm"
   chart      = "argo-cd"
-  version    = "5.51.6"  # Latest stable
+  version    = "5.51.6"
   namespace  = kubernetes_namespace.argocd.metadata[0].name
 
   set {
@@ -101,7 +99,7 @@ resource "time_sleep" "wait_for_argocd" {
   create_duration = "30s"
 }
 
-# Get ArgoCD initial admin password (using data source - more declarative)
+# Get ArgoCD initial admin password
 data "kubernetes_secret" "argocd_initial_password" {
   metadata {
     name      = "argocd-initial-admin-secret"
@@ -111,7 +109,7 @@ data "kubernetes_secret" "argocd_initial_password" {
   depends_on = [time_sleep.wait_for_argocd]
 }
 
-# Apply ArgoCD Applications (declarative!)
+# Apply ArgoCD Applications
 resource "kubernetes_manifest" "wordpress_app" {
   manifest = yamldecode(file("${path.root}/../k8s-manifests/argocd-apps/wordpress-app.yaml"))
 

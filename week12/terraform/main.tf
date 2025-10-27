@@ -23,12 +23,16 @@ module "k3s_cluster" {
   depends_on = [module.network]
 }
 
-# Deploy ArgoCD using declarative Helm provider
+# Deploy ArgoCD - no depends_on here
 module "argocd" {
   source = "./modules/argocd"
 
   kubeconfig_path       = module.k3s_cluster.kubeconfig_path
   cluster_ready_trigger = module.k3s_cluster.kubeconfig_path
 
-  depends_on = [module.k3s_cluster]
+  # Remove depends_on - the kubeconfig_path dependency handles this
+  providers = {
+    kubernetes = kubernetes
+    helm       = helm
+  }
 }

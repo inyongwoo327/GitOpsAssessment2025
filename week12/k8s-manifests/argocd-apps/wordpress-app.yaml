@@ -18,7 +18,7 @@ spec:
         service:
           type: NodePort
           nodePorts:
-            http: 30081  # Changed from 30080 to avoid conflict with ArgoCD
+            http: 30081
         
         wordpressUsername: admin
         
