@@ -23,10 +23,12 @@ module "k3s_cluster" {
   depends_on = [module.network]
 }
 
-# Deploy ArgoCD - NO providers block!
+# Deploy ArgoCD
 module "argocd" {
   source = "./modules/argocd"
 
   kubeconfig_path       = module.k3s_cluster.kubeconfig_path
   cluster_ready_trigger = module.k3s_cluster.kubeconfig_path
+  master_ip             = module.k3s_cluster.master_primary_public_ip
+  ssh_private_key_path  = var.ssh_private_key_path
 }
