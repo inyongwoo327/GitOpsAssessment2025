@@ -218,18 +218,18 @@
 
 
 # Packer Configuration for K3s HA Node AMI
-# Uses AWS Session Manager (following manager's recommendation)
+# Uses standard SSH approach (reliable and straightforward)
 
 packer {
   required_plugins {
     amazon = {
-      version = ">= 1.3.2"  # Updated plugin version
+      version = ">= 1.2.8"
       source  = "github.com/hashicorp/amazon"
     }
   }
 }
 
-# Data source to get the latest Ubuntu 22.04 AMI with SSM pre-installed
+# Data source to get the latest Ubuntu 22.04 AMI
 data "amazon-ami" "ubuntu" {
   filters = {
     name                = "ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"
@@ -237,7 +237,7 @@ data "amazon-ami" "ubuntu" {
     virtualization-type = "hvm"
   }
   most_recent = true
-  owners      = ["679593333241"]  # AWS AMI with SSM agent pre-installed (manager's recommendation)
+  owners      = ["099720109477"]  # Canonical (official Ubuntu)
   region      = var.aws_region
 }
 
@@ -246,16 +246,16 @@ source "amazon-ebs" "k3s_node" {
   instance_type = var.instance_type
   region        = var.aws_region
   source_ami    = data.amazon-ami.ubuntu.id
+  ssh_username  = "ubuntu"
   
-  # ⭐ CORRECTED: Use SSH communicator WITH Session Manager interface
-  communicator         = "ssh"                    # Keep as "ssh" 
-  ssh_interface        = "session_manager"        # This makes it use Session Manager
-  ssh_username         = "ubuntu"
-  iam_instance_profile = "PackerBuilderRole"
+  # Standard SSH configuration (reliable)
+  subnet_id                   = var.subnet_id
+  associate_public_ip_address = true
+  ssh_interface               = "public_ip"
+  ssh_timeout                 = "10m"
   
-  # Network config - no public IP needed
-  subnet_id                   = var.subnet_id != "" ? var.subnet_id : null
-  associate_public_ip_address = false
+  # Allow SSH from anywhere temporarily for building
+  temporary_security_group_source_public_ip = true
   
   tags = {
     Name       = "${var.ami_name_prefix}-${formatdate("YYYY-MM-DD", timestamp())}"

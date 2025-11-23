@@ -24,8 +24,8 @@ variable "k3s_version" {
 
 variable "source_ami_owner" {
   type        = string
-  default     = "099720109477"  # Back to Canonical Ubuntu
-  description = "Owner ID for source AMI"
+  default     = "099720109477"
+  description = "Owner ID for source AMI (Canonical Ubuntu)"
 }
 
 variable "subnet_id" {
